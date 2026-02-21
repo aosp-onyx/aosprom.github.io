@@ -54,6 +54,14 @@ const normalizeDevices = (payload) => {
 };
 
 const buildDownloadUrl = ({ romName, codename, device }) => {
+  if (romName === 'LineageOS') {
+    if (codename && codename !== 'unknown') {
+      return `https://download.lineageos.org/devices/${encodeURIComponent(codename)}`;
+    }
+
+    return 'https://download.lineageos.org/devices';
+  }
+
   const directUrl =
     device.download_url ||
     device.downloadUrl ||
