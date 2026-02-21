@@ -5,7 +5,8 @@ const ROM_SOURCES = [
   },
   {
     name: 'AlphaDroid',
-    url: 'https://raw.githubusercontent.com/alphadroid-project/OTA/main/devices.json',
+    url: 'https://api.github.com/repos/AlphaDroid-devices/OTA/contents',
+    type: 'alphadroid-repo',
   },
   {
     name: 'AxionOS',
@@ -25,6 +26,47 @@ const romGrid = document.getElementById('romGrid');
 const lastUpdated = document.getElementById('lastUpdated');
 const refreshBtn = document.getElementById('refreshBtn');
 const romCardTemplate = document.getElementById('romCardTemplate');
+
+const parseAlphaDroidFile = (payload, fallbackCodename) => {
+  if (!payload || typeof payload !== 'object') {
+    return { codename: fallbackCodename, name: fallbackCodename };
+  }
+
+  const codename = payload.codename || payload.device || payload.id || fallbackCodename;
+  const name = payload.device_name || payload.name || payload.model || codename;
+
+  return { codename, name, ...payload };
+};
+
+const loadAlphaDroidDevices = async (source) => {
+  const response = await fetch(source.url, { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const entries = await response.json();
+  const jsonFiles = entries.filter((entry) => entry.type === 'file' && entry.name.endsWith('.json'));
+
+  const devices = await Promise.all(
+    jsonFiles.map(async (entry) => {
+      const fileResponse = await fetch(entry.download_url, { cache: 'no-store' });
+      if (!fileResponse.ok) {
+        throw new Error(`HTTP ${fileResponse.status}`);
+      }
+
+      const payload = await fileResponse.json();
+      const fallbackCodename = entry.name.replace(/\.json$/i, '');
+      const parsed = parseAlphaDroidFile(payload, fallbackCodename);
+
+      return {
+        ...parsed,
+        github_file_url: entry.html_url,
+      };
+    })
+  );
+
+  return { name: source.name, url: source.url, devices };
+};
 
 const normalizeDevices = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -68,7 +110,8 @@ const buildDownloadUrl = ({ romName, codename, device }) => {
     device.url ||
     device.rom_url ||
     device.website ||
-    device.link;
+    device.link ||
+    (romName === 'AlphaDroid' ? device.github_file_url : null);
 
   if (directUrl) {
     return directUrl;
@@ -89,7 +132,7 @@ const renderRomCard = ({ name, url, devices, error }) => {
 
   title.textContent = name;
   sourceLink.href = url;
-  sourceLink.textContent = 'device.json';
+  sourceLink.textContent = 'Kaynak';
 
   if (error) {
     meta.textContent = 'Cihaz listesi alınamadı';
@@ -130,8 +173,14 @@ const renderRomCard = ({ name, url, devices, error }) => {
   return node;
 };
 
-const loadSource = async ({ name, url }) => {
+const loadSource = async (source) => {
+  const { name, url, type } = source;
+
   try {
+    if (type === 'alphadroid-repo') {
+      return await loadAlphaDroidDevices(source);
+    }
+
     const response = await fetch(url, { cache: 'no-store' });
 
     if (!response.ok) {
