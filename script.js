@@ -42,6 +42,7 @@ const normalizeDevices = (payload) => {
         return {
           codename,
           name: value.device_name || value.name || value.model || codename,
+          ...value,
         };
       }
 
@@ -50,6 +51,23 @@ const normalizeDevices = (payload) => {
   }
 
   return [];
+};
+
+const buildDownloadUrl = ({ romName, codename, device }) => {
+  const directUrl =
+    device.download_url ||
+    device.downloadUrl ||
+    device.url ||
+    device.rom_url ||
+    device.website ||
+    device.link;
+
+  if (directUrl) {
+    return directUrl;
+  }
+
+  const query = encodeURIComponent(`${romName} ${codename} download`);
+  return `https://www.google.com/search?q=${query}`;
 };
 
 const renderRomCard = ({ name, url, devices, error }) => {
@@ -81,7 +99,17 @@ const renderRomCard = ({ name, url, devices, error }) => {
       const li = document.createElement('li');
       const codename = device.codename || device.device || device.id || 'unknown';
       const label = device.name || device.device_name || codename;
-      li.innerHTML = `${label} <code>(${codename})</code>`;
+
+      const downloadLink = document.createElement('a');
+      downloadLink.href = buildDownloadUrl({ romName: name, codename, device });
+      downloadLink.target = '_blank';
+      downloadLink.rel = 'noreferrer';
+      downloadLink.textContent = label;
+
+      const code = document.createElement('code');
+      code.textContent = `(${codename})`;
+
+      li.append(downloadLink, ' ', code);
       list.append(li);
     });
 
