@@ -27,45 +27,8 @@ const lastUpdated = document.getElementById('lastUpdated');
 const refreshBtn = document.getElementById('refreshBtn');
 const romCardTemplate = document.getElementById('romCardTemplate');
 
-const parseAlphaDroidFile = (payload, fallbackCodename) => {
-  if (!payload || typeof payload !== 'object') {
-    return { codename: fallbackCodename, name: fallbackCodename };
-  }
-
-  const codename = payload.codename || payload.device || payload.id || fallbackCodename;
-  const name = payload.device_name || payload.name || payload.model || codename;
-
-  return { codename, name, ...payload };
-};
-
-const loadAlphaDroidDevices = async (source) => {
-  const response = await fetch(source.url, { cache: 'no-store' });
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-
-  const entries = await response.json();
-  const jsonFiles = entries.filter((entry) => entry.type === 'file' && entry.name.endsWith('.json'));
-
-  const devices = await Promise.all(
-    jsonFiles.map(async (entry) => {
-      const fileResponse = await fetch(entry.download_url, { cache: 'no-store' });
-      if (!fileResponse.ok) {
-        throw new Error(`HTTP ${fileResponse.status}`);
-      }
-
-      const payload = await fileResponse.json();
-      const fallbackCodename = entry.name.replace(/\.json$/i, '');
-      const parsed = parseAlphaDroidFile(payload, fallbackCodename);
-
-      return {
-        ...parsed,
-        github_file_url: entry.html_url,
-      };
-    })
-  );
-
-  return { name: source.name, url: source.url, devices };
+const GITHUB_API_HEADERS = {
+  Accept: 'application/vnd.github+json',
 };
 
 const normalizeDevices = (payload) => {
@@ -93,6 +56,82 @@ const normalizeDevices = (payload) => {
   }
 
   return [];
+};
+
+const parseAlphaDroidFile = (payload, fallbackCodename) => {
+  const normalized = normalizeDevices(payload);
+
+  if (normalized.length > 0) {
+    return normalized;
+  }
+
+  if (!payload || typeof payload !== 'object') {
+    return [{ codename: fallbackCodename, name: fallbackCodename }];
+  }
+
+  const codename = payload.codename || payload.device || payload.id || fallbackCodename;
+  const name = payload.device_name || payload.name || payload.model || codename;
+
+  return [{ codename, name, ...payload }];
+};
+
+const fetchGithubContents = async (url) => {
+  const response = await fetch(url, {
+    cache: 'no-store',
+    headers: GITHUB_API_HEADERS,
+  });
+
+  if (!response.ok) {
+    throw new Error(`GitHub API HTTP ${response.status}`);
+  }
+
+  const payload = await response.json();
+  return Array.isArray(payload) ? payload : [];
+};
+
+const loadAlphaDroidDevices = async (source) => {
+  const pendingDirs = [source.url];
+  const jsonEntries = [];
+
+  while (pendingDirs.length > 0) {
+    const nextUrl = pendingDirs.pop();
+    const entries = await fetchGithubContents(nextUrl);
+
+    entries.forEach((entry) => {
+      if (entry.type === 'dir' && entry.url) {
+        pendingDirs.push(entry.url);
+      }
+
+      if (entry.type === 'file' && /\.json$/i.test(entry.name)) {
+        jsonEntries.push(entry);
+      }
+    });
+  }
+
+  const settled = await Promise.allSettled(
+    jsonEntries.map(async (entry) => {
+      const fileResponse = await fetch(entry.download_url, { cache: 'no-store' });
+      if (!fileResponse.ok) {
+        throw new Error(`File HTTP ${fileResponse.status}`);
+      }
+
+      const payload = await fileResponse.json();
+      const fallbackCodename = entry.name.replace(/\.json$/i, '');
+      const parsedDevices = parseAlphaDroidFile(payload, fallbackCodename);
+
+      return parsedDevices.map((device) => ({
+        ...device,
+        github_file_url: entry.html_url,
+      }));
+    })
+  );
+
+  const devices = settled
+    .filter((result) => result.status === 'fulfilled')
+    .flatMap((result) => result.value)
+    .filter((device) => Boolean(device?.codename || device?.device || device?.id));
+
+  return { name: source.name, url: source.url, devices };
 };
 
 const buildDownloadUrl = ({ romName, codename, device }) => {
