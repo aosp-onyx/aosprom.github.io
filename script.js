@@ -177,7 +177,7 @@ const loadAlphaDroidDevices = async (source) => {
   const uniqueDevices = Array.from(
     new Map(
       devices.map((device) => {
-        const codename = String(device.codename || device.device || device.id || '').toLowerCase();
+        const codename = String(getDeviceCodename(device)).toLowerCase();
         return [codename, device];
       })
     ).values()
@@ -185,6 +185,16 @@ const loadAlphaDroidDevices = async (source) => {
 
   return { name: source.name, url: source.url, devices: uniqueDevices };
 };
+
+
+const getDeviceCodename = (device) =>
+  device.codename ||
+  device.device ||
+  device.id ||
+  device.model ||
+  device.slug ||
+  device.filename ||
+  'unknown';
 
 const buildDownloadUrl = ({ romName, codename, device }) => {
   if (romName === 'LineageOS') {
@@ -239,7 +249,7 @@ const renderRomCard = ({ name, url, devices, error }) => {
     .sort((a, b) => String(a.name || a.codename).localeCompare(String(b.name || b.codename)))
     .forEach((device) => {
       const li = document.createElement('li');
-      const codename = device.codename || device.device || device.id || 'unknown';
+      const codename = getDeviceCodename(device);
       const label = device.name || device.device_name || codename;
 
       const downloadLink = document.createElement('a');
