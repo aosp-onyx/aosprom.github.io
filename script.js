@@ -59,20 +59,63 @@ const normalizeDevices = (payload) => {
 };
 
 const parseAlphaDroidFile = (payload, fallbackCodename) => {
-  const normalized = normalizeDevices(payload);
-
-  if (normalized.length > 0) {
-    return normalized;
-  }
-
   if (!payload || typeof payload !== 'object') {
     return [{ codename: fallbackCodename, name: fallbackCodename }];
   }
 
-  const codename = payload.codename || payload.device || payload.id || fallbackCodename;
-  const name = payload.device_name || payload.name || payload.model || codename;
+  if (Array.isArray(payload.response)) {
+    const latestBuild = payload.response.find((item) => item && typeof item === 'object') || {};
+    return [
+      {
+        codename: fallbackCodename,
+        name: payload.device_name || payload.name || fallbackCodename,
+        download_url: latestBuild.url,
+        ...payload,
+      },
+    ];
+  }
 
-  return [{ codename, name, ...payload }];
+  if (Array.isArray(payload)) {
+    return payload.map((device) => ({
+      codename: device.codename || device.device || device.id || fallbackCodename,
+      name: device.device_name || device.name || device.model || fallbackCodename,
+      ...device,
+    }));
+  }
+
+  if (Array.isArray(payload.devices)) {
+    return payload.devices.map((device) => ({
+      codename: device.codename || device.device || device.id || fallbackCodename,
+      name: device.device_name || device.name || device.model || fallbackCodename,
+      ...device,
+    }));
+  }
+
+  const likelySingleDevice = ['codename', 'device', 'device_name', 'model', 'name', 'response'].some(
+    (key) => key in payload
+  );
+
+  if (likelySingleDevice) {
+    const codename = payload.codename || payload.device || payload.id || fallbackCodename;
+    const name = payload.device_name || payload.name || payload.model || codename;
+    return [{ codename, name, ...payload }];
+  }
+
+  return Object.entries(payload).map(([codename, value]) => {
+    if (typeof value === 'string') {
+      return { codename, name: value };
+    }
+
+    if (value && typeof value === 'object') {
+      return {
+        codename,
+        name: value.device_name || value.name || value.model || codename,
+        ...value,
+      };
+    }
+
+    return { codename, name: codename };
+  });
 };
 
 const fetchGithubContents = async (url) => {
@@ -131,7 +174,16 @@ const loadAlphaDroidDevices = async (source) => {
     .flatMap((result) => result.value)
     .filter((device) => Boolean(device?.codename || device?.device || device?.id));
 
-  return { name: source.name, url: source.url, devices };
+  const uniqueDevices = Array.from(
+    new Map(
+      devices.map((device) => {
+        const codename = String(device.codename || device.device || device.id || '').toLowerCase();
+        return [codename, device];
+      })
+    ).values()
+  );
+
+  return { name: source.name, url: source.url, devices: uniqueDevices };
 };
 
 const buildDownloadUrl = ({ romName, codename, device }) => {
