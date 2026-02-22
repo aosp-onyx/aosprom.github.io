@@ -36,6 +36,8 @@ const GITHUB_API_HEADERS = {
   Accept: 'application/vnd.github+json',
 };
 
+const ALPHADROID_FALLBACK_URL = 'https://raw.githubusercontent.com/alphadroid-project/OTA/main/devices.json';
+
 const normalizeDevices = (payload) => {
   if (Array.isArray(payload)) return payload;
 
@@ -137,7 +139,7 @@ const fetchGithubContents = async (url) => {
   return Array.isArray(payload) ? payload : [];
 };
 
-const loadAlphaDroidDevices = async (source) => {
+const loadAlphaDroidFromGithubApi = async (source) => {
   const pendingDirs = [source.url];
   const jsonEntries = [];
 
@@ -189,6 +191,34 @@ const loadAlphaDroidDevices = async (source) => {
   );
 
   return { name: source.name, url: source.url, devices: uniqueDevices };
+};
+
+const loadAlphaDroidFromFallback = async (source) => {
+  const response = await fetch(ALPHADROID_FALLBACK_URL, { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(`Fallback HTTP ${response.status}`);
+  }
+
+  const payload = await response.json();
+  const devices = normalizeDevices(payload).map((device) => ({
+    codename: device.codename || device.device || device.id || getDeviceCodename(device),
+    name: device.device_name || device.name || device.model || getDeviceCodename(device),
+    ...device,
+  }));
+
+  return {
+    name: source.name,
+    url: ALPHADROID_FALLBACK_URL,
+    devices,
+  };
+};
+
+const loadAlphaDroidDevices = async (source) => {
+  try {
+    return await loadAlphaDroidFromGithubApi(source);
+  } catch (error) {
+    return await loadAlphaDroidFromFallback(source);
+  }
 };
 
 
