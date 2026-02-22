@@ -228,6 +228,10 @@ const buildDownloadUrl = ({ romName, codename, device }) => {
     return 'https://download.lineageos.org/devices';
   }
 
+  if (romName === 'AlphaDroid' && codename && codename !== 'unknown') {
+    return `https://sourceforge.net/projects/alphadroid-project/files/${encodeURIComponent(codename)}`;
+  }
+
   const directUrl =
     device.download_url ||
     device.downloadUrl ||
