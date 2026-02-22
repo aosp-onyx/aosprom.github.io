@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AOSP ROM Cihaz Takip</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Topluluk ROM merkezi</p>
+        <h1>AOSP ROM Paylaşım Sitesi</h1>
+        <p>
+          LineageOS, AlphaDroid, AxionOS, Project Infinity ve YAAP kaynaklarındaki
+          <code>device.json</code> verilerini çekip tek ekranda güncel olarak listeler.
+        </p>
+      </div>
+      <button id="refreshBtn" type="button">Verileri Yenile</button>
+    </header>
+
+    <main>
+      <section class="status-panel">
+        <h2>Genel Durum</h2>
+        <p id="lastUpdated">Henüz veri çekilmedi.</p>
+      </section>
+
+      <section>
+        <h2>ROM Listesi</h2>
+        <div id="romGrid" class="rom-grid" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <template id="romCardTemplate">
+      <article class="rom-card">
+        <div class="rom-card__header">
+          <h3></h3>
+          <a target="_blank" rel="noreferrer">Kaynak</a>
+        </div>
+        <p class="rom-card__meta"></p>
+        <p class="rom-card__error" hidden></p>
+        <ul class="device-list"></ul>
+      </article>
+    </template>
+
+    <script src="script.js" type="module"></script>
+  </body>
+</html>
