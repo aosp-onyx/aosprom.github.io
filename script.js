@@ -18,7 +18,8 @@ const ROM_SOURCES = [
   },
   {
     name: 'YAAP',
-    url: 'https://raw.githubusercontent.com/yaap/official_devices/master/devices.json',
+    url: 'https://api.github.com/repos/yaap/ota-info/contents',
+    type: 'yaap-repo',
   },
 ];
 
@@ -187,6 +188,72 @@ const loadAlphaDroidDevices = async (source) => {
 };
 
 
+
+const loadYaapDevices = async (source) => {
+  const pendingDirs = [source.url];
+  const jsonEntries = [];
+
+  while (pendingDirs.length > 0) {
+    const nextUrl = pendingDirs.pop();
+    const entries = await fetchGithubContents(nextUrl);
+
+    entries.forEach((entry) => {
+      if (entry.type === 'dir' && entry.url) {
+        pendingDirs.push(entry.url);
+      }
+
+      if (entry.type === 'file' && /\.json$/i.test(entry.name)) {
+        jsonEntries.push(entry);
+      }
+    });
+  }
+
+  const settled = await Promise.allSettled(
+    jsonEntries.map(async (entry) => {
+      const fileResponse = await fetch(entry.download_url, { cache: 'no-store' });
+      if (!fileResponse.ok) {
+        throw new Error(`File HTTP ${fileResponse.status}`);
+      }
+
+      const payload = await fileResponse.json();
+      const fallbackCodename = entry.name.replace(/\.json$/i, '');
+      const parsedDevices = normalizeDevices(payload);
+
+      const devices = parsedDevices.length > 0
+        ? parsedDevices.map((device) => ({
+            codename: device.codename || device.device || device.id || fallbackCodename,
+            name: device.device_name || device.name || device.model || fallbackCodename,
+            ...device,
+          }))
+        : [
+            {
+              codename: fallbackCodename,
+              name: fallbackCodename,
+            },
+          ];
+
+      return devices;
+    })
+  );
+
+  const devices = settled
+    .filter((result) => result.status === 'fulfilled')
+    .flatMap((result) => result.value)
+    .filter((device) => Boolean(device?.codename || device?.device || device?.id));
+
+  const uniqueDevices = Array.from(
+    new Map(
+      devices.map((device) => {
+        const codename = String(getDeviceCodename(device)).toLowerCase();
+        return [codename, device];
+      })
+    ).values()
+  );
+
+  return { name: source.name, url: source.url, devices: uniqueDevices };
+};
+
+
 const getDeviceCodename = (device) =>
   device.codename ||
   device.device ||
@@ -230,6 +297,10 @@ const buildDownloadUrl = ({ romName, codename, device }) => {
 
   if (romName === 'AlphaDroid' && codename && codename !== 'unknown') {
     return `https://sourceforge.net/projects/alphadroid-project/files/${encodeURIComponent(codename)}`;
+  }
+
+  if (romName === 'YAAP' && codename && codename !== 'unknown') {
+    return `https://mirror.codebucket.de/yaap/device/${encodeURIComponent(codename)}/`;
   }
 
   const directUrl =
@@ -307,6 +378,10 @@ const loadSource = async (source) => {
   try {
     if (type === 'alphadroid-repo') {
       return await loadAlphaDroidDevices(source);
+    }
+
+    if (type === 'yaap-repo') {
+      return await loadYaapDevices(source);
     }
 
     const response = await fetch(url, { cache: 'no-store' });
