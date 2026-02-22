@@ -21,6 +21,10 @@ const ROM_SOURCES = [
     url: 'https://api.github.com/repos/yaap/ota-info/contents',
     type: 'yaap-repo',
   },
+  {
+    name: 'PixelOS',
+    url: 'https://raw.githubusercontent.com/PixelOS-AOSP/official_devices/sixteen/API/devices.json',
+  },
 ];
 
 const romGrid = document.getElementById('romGrid');
@@ -301,6 +305,10 @@ const buildDownloadUrl = ({ romName, codename, device }) => {
 
   if (romName === 'YAAP' && codename && codename !== 'unknown') {
     return `https://mirror.codebucket.de/yaap/device/${encodeURIComponent(codename)}/`;
+  }
+
+  if (romName === 'PixelOS' && codename && codename !== 'unknown') {
+    return `https://sourceforge.net/projects/pixelos-releases/files/sixteen/${encodeURIComponent(codename)}/`;
   }
 
   const directUrl =
