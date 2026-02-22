@@ -196,6 +196,29 @@ const getDeviceCodename = (device) =>
   device.filename ||
   'unknown';
 
+
+const getDeviceBrand = (device) =>
+  device.brand ||
+  device.manufacturer ||
+  device.oem ||
+  device.vendor ||
+  '';
+
+const getDeviceLabel = (device, codename) => {
+  const brand = getDeviceBrand(device);
+  const marketingName = device.device_name || device.name || device.model || '';
+
+  if (brand && marketingName && marketingName.toLowerCase() !== codename.toLowerCase()) {
+    return `${brand} ${marketingName}`;
+  }
+
+  if (brand) {
+    return brand;
+  }
+
+  return marketingName || codename;
+};
+
 const buildDownloadUrl = ({ romName, codename, device }) => {
   if (romName === 'LineageOS') {
     if (codename && codename !== 'unknown') {
@@ -250,7 +273,7 @@ const renderRomCard = ({ name, url, devices, error }) => {
     .forEach((device) => {
       const li = document.createElement('li');
       const codename = getDeviceCodename(device);
-      const label = device.name || device.device_name || codename;
+      const label = getDeviceLabel(device, codename);
 
       const downloadLink = document.createElement('a');
       downloadLink.href = buildDownloadUrl({ romName: name, codename, device });
