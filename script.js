@@ -7,15 +7,70 @@ const ROM_SOURCES = [
   { name: 'PixelOS', url: 'https://raw.githubusercontent.com/PixelOS-AOSP/official_devices/sixteen/API/devices.json' },
 ];
 
+const TRANSLATIONS = {
+  en: {
+    latest_updates: 'Latest Updates',
+    eyebrow: 'Community ROM Hub',
+    hero_title: 'Next-Gen AOSP Catalog',
+    hero_desc: 'Aggregating real-time data from LineageOS, AlphaDroid, AxionOS, YAAP, and PixelOS.',
+    refresh_btn: 'Refresh Data',
+    search_placeholder: 'Search by device, codename, or ROM name...',
+    system_insight: 'System Insight',
+    warming_up: 'Warming up engine...',
+    onyx_spotlight: 'Onyx Spotlight (Android 16)',
+    onyx_desc: "Kenan's AlphaDroid 16 (onyx) project is currently under active development. Stay tuned for early builds.",
+    source_link: 'Source',
+    devices_found: 'devices found',
+    last_sync: 'Last sync',
+    total_devices: 'Total Devices',
+    matches: 'Matches',
+    sources: 'Sources'
+  },
+  tr: {
+    latest_updates: 'Son Güncellemeler',
+    eyebrow: 'Topluluk ROM Merkezi',
+    hero_title: 'Yeni Nesil AOSP Kataloğu',
+    hero_desc: 'LineageOS, AlphaDroid, AxionOS, YAAP ve PixelOS kaynaklarından anlık veriler.',
+    refresh_btn: 'Verileri Yenile',
+    search_placeholder: 'Cihaz, kod adı veya ROM ara...',
+    system_insight: 'Sistem Durumu',
+    warming_up: 'Motor ısınıyor...',
+    onyx_spotlight: 'Onyx Köşesi (Android 16)',
+    onyx_desc: "Kenan'ın AlphaDroid 16 (onyx) projesi şu an aktif geliştirme aşamasındadır. Takipte kalın.",
+    source_link: 'Kaynak',
+    devices_found: 'cihaz bulundu',
+    last_sync: 'Son güncelleme',
+    total_devices: 'Toplam Cihaz',
+    matches: 'Eşleşme',
+    sources: 'Kaynak'
+  }
+};
+
+let currentLang = localStorage.getItem('lang') || 'en';
+let CACHED_ALL_DEVICES = [];
+
 const romGrid = document.getElementById('romGrid');
 const lastUpdated = document.getElementById('lastUpdated');
 const refreshBtn = document.getElementById('refreshBtn');
+const langBtn = document.getElementById('langBtn');
 const romCountBadge = document.getElementById('romCountBadge');
 const deviceCountBadge = document.getElementById('deviceCountBadge');
 const searchInput = document.getElementById('searchInput');
+const tickerContent = document.getElementById('tickerContent');
 const romCardTemplate = document.getElementById('romCardTemplate');
 
 const GITHUB_API_HEADERS = { Accept: 'application/vnd.github+json' };
+
+const i18n = () => {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = TRANSLATIONS[currentLang][el.dataset.i18n];
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = TRANSLATIONS[currentLang][el.dataset.i18nPlaceholder];
+  });
+  langBtn.textContent = currentLang === 'en' ? 'TR' : 'EN';
+  document.documentElement.lang = currentLang;
+};
 
 const getDeviceCodename = (d) => d.codename || d.device || d.id || d.model || 'unknown';
 const getDeviceLabel = (d, code) => d.device_name || d.name || d.model || code;
@@ -27,20 +82,9 @@ const getMaintenanceStatus = (datetime) => {
   return diffMonths < 3 ? 'Active' : 'Inactive';
 };
 
-const buildDownloadUrl = ({ romName, codename, device }) => {
-  const mapping = {
-    'LineageOS': `https://download.lineageos.org/devices/${codename}/builds`,
-    'AlphaDroid': `https://sourceforge.net/projects/alphadroid-project/files/${codename}`,
-    'YAAP': `https://mirror.codebucket.de/yaap/device/${codename}/`,
-    'PixelOS': `https://sourceforge.net/projects/pixelos-releases/files/sixteen/${codename}/`
-  };
-  return mapping[romName] || device.download_url || device.url || `https://www.google.com/search?q=${romName}+${codename}+download`;
-};
-
 const fetchGithubContents = async (url) => {
   const res = await fetch(url, { cache: 'no-store', headers: GITHUB_API_HEADERS });
-  if (!res.ok) throw new Error(`Rate limit or API error (${res.status})`);
-  return await res.json();
+  return res.ok ? await res.json() : [];
 };
 
 const loadRepoStyle = async (source) => {
@@ -58,7 +102,7 @@ const loadRepoStyle = async (source) => {
       const payload = await res.json();
       const codename = e.name.replace(/\.json$/i, '');
       let devList = Array.isArray(payload) ? payload : (payload.response ? (Array.isArray(payload.response) ? payload.response : [payload]) : [payload]);
-      return devList.map(d => ({ ...d, codename: d.codename || codename, datetime: d.datetime || d.date || null }));
+      return devList.map(d => ({ ...d, codename: d.codename || codename, datetime: d.datetime || d.date || null, romName: source.name }));
     }));
     return { name: source.name, url: source.url, devices: settled.filter(r => r.status === 'fulfilled').flatMap(r => r.value) };
   } catch (e) {
@@ -71,14 +115,12 @@ const loadSource = async (source) => {
   const cacheKey = `rom_cache_${source.name}`;
   try {
     let result;
-    if (source.type === 'alphadroid-repo' || source.type === 'yaap-repo') {
-      result = await loadRepoStyle(source);
-    } else {
+    if (source.type === 'alphadroid-repo' || source.type === 'yaap-repo') result = await loadRepoStyle(source);
+    else {
       const res = await fetch(source.url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const payload = await res.json();
       const devices = (Array.isArray(payload) ? payload : payload.devices || Object.entries(payload).map(([c, v]) => ({ codename: c, ...v }))).map(d => ({
-        ...d, datetime: d.datetime || d.date || null
+        ...d, datetime: d.datetime || d.date || null, romName: source.name
       }));
       result = { name: source.name, url: source.url, devices };
     }
@@ -86,78 +128,70 @@ const loadSource = async (source) => {
     return result;
   } catch (e) {
     const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      const { devices, timestamp } = JSON.parse(cached);
-      return { name: source.name, url: source.url, devices, isCached: true, cachedTime: new Date(timestamp).toLocaleTimeString() };
-    }
+    if (cached) return { name: source.name, url: source.url, devices: JSON.parse(cached).devices, isCached: true };
     return { name: source.name, url: source.url, devices: [], error: e.message };
   }
+};
+
+const updateTicker = (allDevices) => {
+  const sorted = allDevices.filter(d => d.datetime).sort((a, b) => b.datetime - a.datetime).slice(0, 10);
+  tickerContent.innerHTML = sorted.map(d => `<span><strong>${d.romName}</strong>: ${getDeviceLabel(d, d.codename)} (${d.codename})</span>`).join('');
 };
 
 const render = (results) => {
   romGrid.innerHTML = '';
   let globalCount = 0;
+  let allDevices = [];
+  
   results.forEach(res => {
     const node = romCardTemplate.content.cloneNode(true);
-    const card = node.querySelector('.rom-card');
     node.querySelector('h3').textContent = res.name;
     node.querySelector('.source-link').href = res.url;
-    node.querySelector('.rom-card__meta').textContent = `${res.devices.length} Devices`;
+    node.querySelector('.rom-card__meta').textContent = `${res.devices.length} ${TRANSLATIONS[currentLang].devices_found}`;
     
-    if (res.isCached) {
-      const badge = document.createElement('span');
-      badge.className = 'status-badge status-inactive';
-      badge.style.fontSize = '0.6rem';
-      badge.textContent = `Offline (Saved ${res.cachedTime})`;
-      node.querySelector('.rom-card__title-group').appendChild(badge);
-    }
-
-    if (res.error) {
-      node.querySelector('.rom-card__error').hidden = false;
-      node.querySelector('.rom-card__error').textContent = res.error;
-    }
     const list = node.querySelector('.device-list');
     res.devices.forEach(d => {
       globalCount++;
+      allDevices.push(d);
       const li = document.createElement('li');
       const code = getDeviceCodename(d).toLowerCase();
       li.dataset.codename = code;
       
       const infoWrapper = document.createElement('div');
       infoWrapper.className = 'device-info-row';
-
       const a = document.createElement('a');
-      a.href = buildDownloadUrl({ romName: res.name, codename: code, device: d });
+      a.href = d.url || d.download_url || '#';
       a.target = '_blank';
       a.textContent = getDeviceLabel(d, code);
       
       const status = getMaintenanceStatus(d.datetime);
       if (status) {
-        const span = document.createElement('span');
-        span.className = `status-badge status-${status.toLowerCase()}`;
-        span.textContent = status;
-        a.appendChild(span);
+        const s = document.createElement('span');
+        s.className = `status-badge status-${status.toLowerCase()}`;
+        s.textContent = status;
+        a.appendChild(s);
       }
-
-      const version = d.version || d.android || '';
-      if (version) {
-        const vTag = document.createElement('span');
-        vTag.className = 'version-tag';
-        vTag.textContent = `v${version}`;
-        infoWrapper.appendChild(vTag);
-      }
-
-      const cTag = document.createElement('code');
-      cTag.textContent = code;
       
+      if (d.version || d.android) {
+        const v = document.createElement('span');
+        v.className = 'version-tag';
+        v.textContent = `v${d.version || d.android}`;
+        infoWrapper.appendChild(v);
+      }
+      
+      const c = document.createElement('code');
+      c.textContent = code;
       infoWrapper.prepend(a);
-      li.append(infoWrapper, cTag);
+      li.append(infoWrapper, c);
       list.appendChild(li);
     });
     romGrid.appendChild(node);
   });
-  deviceCountBadge.textContent = `${globalCount} Total Devices`;
-  romCountBadge.textContent = `${results.length} Sources`;
+  
+  deviceCountBadge.textContent = `${globalCount} ${TRANSLATIONS[currentLang].total_devices}`;
+  romCountBadge.textContent = `${results.length} ${TRANSLATIONS[currentLang].sources}`;
+  updateTicker(allDevices);
+  document.getElementById('onyxHighlight').hidden = !allDevices.some(d => d.codename.toLowerCase() === 'onyx');
   filterResults();
 };
 
@@ -173,19 +207,27 @@ const filterResults = () => {
     });
     card.classList.toggle('hidden', !cardMatch);
   });
-  deviceCountBadge.textContent = `${matches} Matches`;
+  deviceCountBadge.textContent = `${matches} ${TRANSLATIONS[currentLang].matches}`;
 };
+
+langBtn.addEventListener('click', () => {
+  currentLang = currentLang === 'en' ? 'tr' : 'en';
+  localStorage.setItem('lang', currentLang);
+  i18n();
+  refreshData();
+});
 
 const refreshData = async () => {
   refreshBtn.disabled = true;
-  refreshBtn.textContent = 'Syncing...';
+  refreshBtn.textContent = currentLang === 'en' ? 'Syncing...' : 'Eşitleniyor...';
   const results = await Promise.all(ROM_SOURCES.map(loadSource));
   render(results);
-  lastUpdated.textContent = `Last sync: ${new Date().toLocaleTimeString()}`;
-  refreshBtn.textContent = 'Refresh Data';
+  lastUpdated.textContent = `${TRANSLATIONS[currentLang].last_sync}: ${new Date().toLocaleTimeString()}`;
+  refreshBtn.textContent = TRANSLATIONS[currentLang].refresh_btn;
   refreshBtn.disabled = false;
 };
 
 searchInput.addEventListener('input', filterResults);
 refreshBtn.addEventListener('click', refreshData);
+i18n();
 refreshData();
