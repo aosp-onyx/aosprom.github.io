@@ -1,33 +1,46 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AOSP ROM Cihaz Takip</title>
+    <title>AOSP ROM Device Tracker</title>
     <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   </head>
   <body>
     <header class="hero">
-      <div>
-        <p class="eyebrow">Topluluk ROM merkezi</p>
-        <h1>AOSP ROM Paylaşım Sitesi</h1>
-        <p>
-          LineageOS, AlphaDroid, AxionOS, Project Infinity ve YAAP kaynaklarındaki
-          <code>device.json</code> verilerini çekip tek ekranda güncel olarak listeler.
+      <div class="hero-content">
+        <p class="eyebrow">Community ROM Hub</p>
+        <h1>AOSP ROM Distribution Catalog</h1>
+        <p class="hero-description">
+          Aggregating <code>device.json</code> data from LineageOS, AlphaDroid, AxionOS, Project Infinity, YAAP, and PixelOS. 
+          Real-time updates directly from the source repositories.
         </p>
       </div>
-      <button id="refreshBtn" type="button">Verileri Yenile</button>
+      <button id="refreshBtn" type="button">Refresh Data</button>
     </header>
 
     <main>
       <section class="status-panel">
-        <h2>Genel Durum</h2>
-        <p id="lastUpdated">Henüz veri çekilmedi.</p>
+        <div class="status-header">
+          <span class="status-indicator"></span>
+          <h2>System Status</h2>
+        </div>
+        <p id="lastUpdated" class="muted">Initializing data fetch...</p>
       </section>
 
       <section>
-        <h2>ROM Listesi</h2>
-        <div id="romGrid" class="rom-grid" aria-live="polite"></div>
+        <div class="section-header">
+          <h2>ROM Catalog</h2>
+          <span id="romCountBadge" class="badge">0 Sources</span>
+        </div>
+        <div id="romGrid" class="rom-grid" aria-live="polite">
+          <div class="skeleton-loader"></div>
+          <div class="skeleton-loader"></div>
+          <div class="skeleton-loader"></div>
+        </div>
       </section>
     </main>
 
@@ -35,11 +48,13 @@
       <article class="rom-card">
         <div class="rom-card__header">
           <h3></h3>
-          <a target="_blank" rel="noreferrer">Kaynak</a>
+          <a class="source-link" target="_blank" rel="noreferrer">Source</a>
         </div>
         <p class="rom-card__meta"></p>
         <p class="rom-card__error" hidden></p>
-        <ul class="device-list"></ul>
+        <div class="device-list-container">
+          <ul class="device-list"></ul>
+        </div>
       </article>
     </template>
 
