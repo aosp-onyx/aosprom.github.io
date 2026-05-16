@@ -24,7 +24,12 @@ const TRANSLATIONS = {
     last_sync: 'Last sync',
     total_devices: 'Total Devices',
     matches: 'Matches',
-    sources: 'Sources'
+    sources: 'Sources',
+    footer_about: 'Centralized dashboard for tracking AOSP distributions and custom Android projects.',
+    footer_links_title: 'Community',
+    footer_legal_title: 'Disclaimer',
+    footer_legal_text: 'This site is not affiliated with Google or Xiaomi. All ROMs and logos are property of their respective owners.',
+    footer_crafted: 'Crafted with ❤️ by'
   },
   tr: {
     latest_updates: 'Son Güncellemeler',
@@ -42,7 +47,12 @@ const TRANSLATIONS = {
     last_sync: 'Son güncelleme',
     total_devices: 'Toplam Cihaz',
     matches: 'Eşleşme',
-    sources: 'Kaynak'
+    sources: 'Kaynak',
+    footer_about: 'AOSP dağıtımlarını ve özel Android projelerini takip etmek için merkezi kontrol paneli.',
+    footer_links_title: 'Topluluk',
+    footer_legal_title: 'Yasal Uyarı',
+    footer_legal_text: 'Bu site Google veya Xiaomi ile bağlantılı değildir. Tüm ROMlar ve logolar sahiplerine aittir.',
+    footer_crafted: '❤️ ile geliştiren:'
   }
 };
 
@@ -142,13 +152,11 @@ const render = (results) => {
   romGrid.innerHTML = '';
   let globalCount = 0;
   let allDevices = [];
-  
   results.forEach(res => {
     const node = romCardTemplate.content.cloneNode(true);
     node.querySelector('h3').textContent = res.name;
     node.querySelector('.source-link').href = res.url;
     node.querySelector('.rom-card__meta').textContent = `${res.devices.length} ${TRANSLATIONS[currentLang].devices_found}`;
-    
     const list = node.querySelector('.device-list');
     res.devices.forEach(d => {
       globalCount++;
@@ -156,14 +164,12 @@ const render = (results) => {
       const li = document.createElement('li');
       const code = getDeviceCodename(d).toLowerCase();
       li.dataset.codename = code;
-      
       const infoWrapper = document.createElement('div');
       infoWrapper.className = 'device-info-row';
       const a = document.createElement('a');
       a.href = d.url || d.download_url || '#';
       a.target = '_blank';
       a.textContent = getDeviceLabel(d, code);
-      
       const status = getMaintenanceStatus(d.datetime);
       if (status) {
         const s = document.createElement('span');
@@ -171,14 +177,12 @@ const render = (results) => {
         s.textContent = status;
         a.appendChild(s);
       }
-      
       if (d.version || d.android) {
         const v = document.createElement('span');
         v.className = 'version-tag';
         v.textContent = `v${d.version || d.android}`;
         infoWrapper.appendChild(v);
       }
-      
       const c = document.createElement('code');
       c.textContent = code;
       infoWrapper.prepend(a);
@@ -187,7 +191,6 @@ const render = (results) => {
     });
     romGrid.appendChild(node);
   });
-  
   deviceCountBadge.textContent = `${globalCount} ${TRANSLATIONS[currentLang].total_devices}`;
   romCountBadge.textContent = `${results.length} ${TRANSLATIONS[currentLang].sources}`;
   updateTicker(allDevices);
