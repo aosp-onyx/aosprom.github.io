@@ -7,8 +7,6 @@ const ROM_SOURCES = [
   { name: 'PixelOS', url: 'https://raw.githubusercontent.com/PixelOS-AOSP/official_devices/sixteen/API/devices.json' },
 ];
 
-let CACHED_RESULTS = [];
-
 const romGrid = document.getElementById('romGrid');
 const lastUpdated = document.getElementById('lastUpdated');
 const refreshBtn = document.getElementById('refreshBtn');
@@ -18,39 +16,25 @@ const searchInput = document.getElementById('searchInput');
 const romCardTemplate = document.getElementById('romCardTemplate');
 
 const GITHUB_API_HEADERS = { Accept: 'application/vnd.github+json' };
-const ALPHADROID_FALLBACK_URL = 'https://raw.githubusercontent.com/alphadroid-project/OTA/main/devices.json';
 
-const normalizeDevices = (payload) => {
-  if (Array.isArray(payload)) return payload;
-  if (payload && Array.isArray(payload.devices)) return payload.devices;
-  if (payload && typeof payload === 'object') {
-    return Object.entries(payload).map(([codename, value]) => {
-      if (typeof value === 'string') return { codename, name: value };
-      return { codename, name: value.device_name || value.name || value.model || codename, ...value };
-    });
-  }
-  return [];
-};
+const getDeviceCodename = (d) => d.codename || d.device || d.id || d.model || 'unknown';
+const getDeviceLabel = (d, code) => d.device_name || d.name || d.model || code;
 
-const getDeviceCodename = (device) => 
-  device.codename || device.device || device.id || device.model || device.slug || device.filename || 'unknown';
-
-const getDeviceLabel = (device, codename) => {
-  const brand = device.brand || device.manufacturer || device.oem || device.vendor || '';
-  const name = device.device_name || device.name || device.model || '';
-  if (brand && name && name.toLowerCase() !== codename.toLowerCase()) return `${brand} ${name}`;
-  return name || brand || codename;
+const getMaintenanceStatus = (datetime) => {
+  if (!datetime) return null;
+  const buildDate = new Date(datetime * 1000);
+  const diffMonths = (new Date() - buildDate) / (1000 * 60 * 60 * 24 * 30);
+  return diffMonths < 3 ? 'Active' : 'Inactive';
 };
 
 const buildDownloadUrl = ({ romName, codename, device }) => {
   const mapping = {
-    'LineageOS': `https://download.lineageos.org/devices/${encodeURIComponent(codename)}/builds`,
-    'AlphaDroid': `https://sourceforge.net/projects/alphadroid-project/files/${encodeURIComponent(codename)}`,
-    'YAAP': `https://mirror.codebucket.de/yaap/device/${encodeURIComponent(codename)}/`,
-    'PixelOS': `https://sourceforge.net/projects/pixelos-releases/files/sixteen/${encodeURIComponent(codename)}/`
+    'LineageOS': `https://download.lineageos.org/devices/${codename}/builds`,
+    'AlphaDroid': `https://sourceforge.net/projects/alphadroid-project/files/${codename}`,
+    'YAAP': `https://mirror.codebucket.de/yaap/device/${codename}/`,
+    'PixelOS': `https://sourceforge.net/projects/pixelos-releases/files/sixteen/${codename}/`
   };
-  if (mapping[romName] && codename !== 'unknown') return mapping[romName];
-  return device.download_url || device.url || `https://www.google.com/search?q=${encodeURIComponent(romName + ' ' + codename + ' download')}`;
+  return mapping[romName] || device.download_url || device.url || `https://www.google.com/search?q=${romName}+${codename}+download`;
 };
 
 const fetchGithubContents = async (url) => {
@@ -71,52 +55,22 @@ const loadRepoStyle = async (source) => {
     const res = await fetch(e.download_url);
     const payload = await res.json();
     const codename = e.name.replace(/\.json$/i, '');
-    // Handle both single device and array payloads
-    let devList = [];
-    if (Array.isArray(payload)) devList = payload;
-    else if (payload.response) devList = [{ ...payload, codename }];
-    else devList = [payload];
-    return devList.map(d => ({ ...d, codename: d.codename || codename }));
+    let devList = Array.isArray(payload) ? payload : (payload.response ? (Array.isArray(payload.response) ? payload.response : [payload]) : [payload]);
+    return devList.map(d => ({ ...d, codename: d.codename || codename, datetime: d.datetime || d.date || null }));
   }));
-  const devices = settled.filter(r => r.status === 'fulfilled').flatMap(r => r.value);
-  return { name: source.name, url: source.url, devices };
+  return { name: source.name, url: source.url, devices: settled.filter(r => r.status === 'fulfilled').flatMap(r => r.value) };
 };
 
 const loadSource = async (source) => {
   try {
     if (source.type === 'alphadroid-repo' || source.type === 'yaap-repo') return await loadRepoStyle(source);
     const res = await fetch(source.url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return { name: source.name, url: source.url, devices: normalizeDevices(await res.json()) };
-  } catch (e) {
-    return { name: source.name, url: source.url, devices: [], error: e.message };
-  }
-};
-
-const filterResults = () => {
-  const term = searchInput.value.toLowerCase();
-  let totalDevices = 0;
-
-  document.querySelectorAll('.rom-card').forEach((card, idx) => {
-    let hasMatch = false;
-    const romName = card.querySelector('h3').textContent.toLowerCase();
-    const items = card.querySelectorAll('.device-list li');
-    
-    items.forEach(li => {
-      const text = li.textContent.toLowerCase();
-      const codename = li.dataset.codename;
-      const match = text.includes(term) || romName.includes(term) || codename.includes(term);
-      li.classList.toggle('hidden', !match);
-      if (match) {
-        hasMatch = true;
-        totalDevices++;
-      }
-    });
-    
-    card.classList.toggle('hidden', !hasMatch);
-  });
-  
-  deviceCountBadge.textContent = `${totalDevices} Matches`;
+    const payload = await res.json();
+    const devices = (Array.isArray(payload) ? payload : payload.devices || Object.entries(payload).map(([c, v]) => ({ codename: c, ...v }))).map(d => ({
+      ...d, datetime: d.datetime || d.date || null
+    }));
+    return { name: source.name, url: source.url, devices };
+  } catch (e) { return { name: source.name, url: source.url, devices: [], error: e.message }; }
 };
 
 const render = (results) => {
@@ -124,46 +78,76 @@ const render = (results) => {
   let globalCount = 0;
   results.forEach(res => {
     const node = romCardTemplate.content.cloneNode(true);
-    const card = node.querySelector('.rom-card');
     node.querySelector('h3').textContent = res.name;
     node.querySelector('.source-link').href = res.url;
     node.querySelector('.rom-card__meta').textContent = `${res.devices.length} Devices`;
-    
     if (res.error) {
       node.querySelector('.rom-card__error').hidden = false;
       node.querySelector('.rom-card__error').textContent = res.error;
     }
-
     const list = node.querySelector('.device-list');
     res.devices.forEach(d => {
       globalCount++;
       const li = document.createElement('li');
-      const codename = getDeviceCodename(d);
-      li.dataset.codename = codename.toLowerCase();
+      const code = getDeviceCodename(d).toLowerCase();
+      li.dataset.codename = code;
       
+      const infoWrapper = document.createElement('div');
+      infoWrapper.className = 'device-info-row';
+
       const a = document.createElement('a');
-      a.href = buildDownloadUrl({ romName: res.name, codename, device: d });
+      a.href = buildDownloadUrl({ romName: res.name, codename: code, device: d });
       a.target = '_blank';
-      a.textContent = getDeviceLabel(d, codename);
+      a.textContent = getDeviceLabel(d, code);
       
-      const code = document.createElement('code');
-      code.textContent = codename;
+      const status = getMaintenanceStatus(d.datetime);
+      if (status) {
+        const span = document.createElement('span');
+        span.className = `status-badge status-${status.toLowerCase()}`;
+        span.textContent = status;
+        a.appendChild(span);
+      }
+
+      const version = d.version || d.android || '';
+      if (version) {
+        const vTag = document.createElement('span');
+        vTag.className = 'version-tag';
+        vTag.textContent = `v${version}`;
+        infoWrapper.appendChild(vTag);
+      }
+
+      const cTag = document.createElement('code');
+      cTag.textContent = code;
       
-      li.append(a, code);
-      list.append(li);
+      infoWrapper.prepend(a);
+      li.append(infoWrapper, cTag);
+      list.appendChild(li);
     });
-    romGrid.append(node);
+    romGrid.appendChild(node);
   });
-  
   deviceCountBadge.textContent = `${globalCount} Total Devices`;
   romCountBadge.textContent = `${results.length} Sources`;
-  CACHED_RESULTS = results;
   filterResults();
+};
+
+const filterResults = () => {
+  const term = searchInput.value.toLowerCase();
+  let matches = 0;
+  document.querySelectorAll('.rom-card').forEach(card => {
+    let cardMatch = false;
+    card.querySelectorAll('.device-list li').forEach(li => {
+      const match = li.textContent.toLowerCase().includes(term) || li.dataset.codename.includes(term) || card.querySelector('h3').textContent.toLowerCase().includes(term);
+      li.classList.toggle('hidden', !match);
+      if (match) { cardMatch = true; matches++; }
+    });
+    card.classList.toggle('hidden', !cardMatch);
+  });
+  deviceCountBadge.textContent = `${matches} Matches`;
 };
 
 const refreshData = async () => {
   refreshBtn.disabled = true;
-  refreshBtn.textContent = 'Fetching...';
+  refreshBtn.textContent = 'Syncing...';
   const results = await Promise.all(ROM_SOURCES.map(loadSource));
   render(results);
   lastUpdated.textContent = `Last sync: ${new Date().toLocaleTimeString()}`;
