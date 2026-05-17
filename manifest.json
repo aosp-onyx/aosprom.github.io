@@ -1,0 +1,15 @@
+{
+  "name": "ROM Hub",
+  "short_name": "ROM Hub",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#05070a",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2586/2586488.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
