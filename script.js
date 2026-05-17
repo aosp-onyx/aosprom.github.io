@@ -11,20 +11,17 @@ const TRANSLATIONS = {
   en: {
     latest_updates: 'Latest Updates', eyebrow: 'Community ROM Hub', hero_title: 'Next-Gen AOSP Catalog', hero_desc: 'Aggregating real-time data from LineageOS, AlphaDroid, AxionOS, YAAP, and PixelOS.', refresh_btn: 'Refresh Data', search_placeholder: 'Search by device, codename, or ROM name...', system_insight: 'System Insight', warming_up: 'Warming up engine...', onyx_spotlight: 'Onyx Spotlight (Android 16)', onyx_desc: "Kenan's AlphaDroid 16 (onyx) project is currently under active development. Stay tuned for early builds.", source_link: 'Source', devices_found: 'devices found', last_sync: 'Last sync', total_devices: 'Total Devices', matches: 'Matches', sources: 'Sources',
     selected_to_compare: 'devices selected', compare_now: 'Compare Now', comparison_result: 'Side-by-Side Comparison', spec_rom: 'ROM Name', spec_device: 'Device', spec_version: 'Android', spec_status: 'Status', spec_download: 'Download',
-    show_more: 'Show All', show_less: 'Show Less',
     footer_about: 'Centralized dashboard for tracking AOSP distributions and custom Android projects.', footer_links_title: 'Community', footer_legal_title: 'Disclaimer', footer_legal_text: 'This site is not affiliated with Google or Xiaomi. All ROMs and logos are property of their respective owners.', footer_crafted: 'Crafted with ❤️ by'
   },
   tr: {
     latest_updates: 'Son Güncellemeler', eyebrow: 'Topluluk ROM Merkezi', hero_title: 'Yeni Nesil AOSP Kataloğu', hero_desc: 'LineageOS, AlphaDroid, AxionOS, YAAP ve PixelOS kaynaklarından anlık veriler.', refresh_btn: 'Verileri Yenile', search_placeholder: 'Cihaz, kod adı veya ROM ara...', system_insight: 'Sistem Durumu', warming_up: 'Motor ısınıyor...', onyx_spotlight: 'Onyx Köşesi (Android 16)', onyx_desc: "Kenan'ın AlphaDroid 16 (onyx) projesi şu an aktif geliştirme aşamasındadır. Takipte kalın.", source_link: 'Kaynak', devices_found: 'cihaz bulundu', last_sync: 'Son güncelleme', total_devices: 'Toplam Cihaz', matches: 'Eşleşme', sources: 'Kaynak',
     selected_to_compare: 'cihaz seçildi', compare_now: 'Karşılaştır', comparison_result: 'Yan Yana Karşılaştırma', spec_rom: 'ROM Adı', spec_device: 'Cihaz', spec_version: 'Android', spec_status: 'Durum', spec_download: 'İndir',
-    show_more: 'Tamamını Gör', show_less: 'Daha Az Gör',
     footer_about: 'AOSP dağıtımlarını ve özel Android projelerini takip etmek için merkezi kontrol paneli.', footer_links_title: 'Topluluk', footer_legal_title: 'Yasal Uyarı', footer_legal_text: 'Bu site Google veya Xiaomi ile bağlantılı değildir. Tüm ROMlar ve logolar sahiplerine aittir.', footer_crafted: '❤️ ile geliştiren:'
   }
 };
 
 let currentLang = localStorage.getItem('lang') || 'en';
 let SELECTED_FOR_COMPARE = [];
-const DEVICE_LIMIT = 8;
 
 const romGrid = document.getElementById('romGrid');
 const lastUpdated = document.getElementById('lastUpdated');
@@ -164,16 +161,15 @@ const render = (results) => {
     const node = romCardTemplate.content.cloneNode(true);
     node.querySelector('h3').textContent = res.name;
     node.querySelector('.source-link').href = res.url;
-    node.querySelector('.rom-card__meta').textContent = `${res.devices.length} ${TRANSLATIONS[currentLang].devices_found}`;
+    node.querySelector('.rom-card__meta').textContent = `${res.devices.length} ${TRANSLATIONS[current_lang = currentLang].devices_found}`;
     
     const list = node.querySelector('.device-list');
-    res.devices.forEach((d, idx) => {
+    res.devices.forEach((d) => {
       globalCount++;
       allDevices.push(d);
       const li = document.createElement('li');
       const code = getDeviceCodename(d).toLowerCase();
       li.dataset.codename = code;
-      if (idx >= DEVICE_LIMIT) li.classList.add('collapsed-hidden');
 
       const checkbox = document.createElement('div');
       checkbox.className = 'compare-checkbox';
@@ -207,21 +203,6 @@ const render = (results) => {
       li.append(checkbox, infoWrapper, c);
       list.appendChild(li);
     });
-
-    if (res.devices.length > DEVICE_LIMIT) {
-      const moreWrapper = node.querySelector('.show-more-wrapper');
-      const moreBtn = moreWrapper.querySelector('.btn-toggle-list');
-      moreWrapper.hidden = false;
-      moreBtn.onclick = () => {
-        const isCollapsed = moreBtn.dataset.i18n === 'show_more';
-        list.querySelectorAll('li').forEach((li, idx) => {
-          if (idx >= DEVICE_LIMIT) li.classList.toggle('collapsed-hidden', !isCollapsed);
-        });
-        moreBtn.dataset.i18n = isCollapsed ? 'show_less' : 'show_more';
-        moreBtn.textContent = TRANSLATIONS[currentLang][moreBtn.dataset.i18n];
-      };
-    }
-
     romGrid.appendChild(node);
   });
   
@@ -237,26 +218,12 @@ const filterResults = () => {
   let matches = 0;
   document.querySelectorAll('.rom-card').forEach(card => {
     let cardMatch = false;
-    const list = card.querySelector('.device-list');
-    const moreWrapper = card.querySelector('.show-more-wrapper');
-    const moreBtn = moreWrapper?.querySelector('.btn-toggle-list');
-
     card.querySelectorAll('.device-list li').forEach(li => {
       const match = li.textContent.toLowerCase().includes(term) || li.dataset.codename.includes(term) || card.querySelector('h3').textContent.toLowerCase().includes(term);
       li.classList.toggle('hidden', !match);
       if (match) { cardMatch = true; matches++; }
     });
-    
     card.classList.toggle('hidden', !cardMatch);
-    if (moreWrapper && term) moreWrapper.hidden = true; // Hide 'Show More' during search to show all matches
-    else if (moreWrapper) {
-      moreWrapper.hidden = false;
-      // Re-apply collapse state
-      const isCollapsed = moreBtn.dataset.i18n === 'show_more';
-      list.querySelectorAll('li').forEach((li, idx) => {
-        if (idx >= DEVICE_LIMIT) li.classList.toggle('collapsed-hidden', isCollapsed);
-      });
-    }
   });
   deviceCountBadge.textContent = `${matches} ${TRANSLATIONS[currentLang].matches}`;
 };

@@ -435,3 +435,38 @@ button#refreshBtn { background: var(--accent); border: none; }
 #backToTop:hover {
   transform: translateY(-5px);
 }
+
+/* Scrollable Device Lists */
+.device-list-container {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+  margin-top: 1rem;
+}
+
+/* Custom Scrollbar */
+.device-list-container::-webkit-scrollbar {
+  width: 5px;
+}
+.device-list-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+}
+.device-list-container::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+.device-list-container::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Compact list items */
+.device-list li {
+  margin-bottom: 2px;
+  padding: 0.5rem 0.75rem;
+}
+
+/* Remove Show More since we have scroll now */
+.show-more-wrapper {
+  display: none !important;
+}
