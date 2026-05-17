@@ -86,6 +86,29 @@
         </div>
       </section>
     </main>
+
+    <div id="compareTray" class="compare-tray hidden">
+      <div class="tray-content">
+        <p><strong id="compareCount">0</strong> <span data-i18n="selected_to_compare">devices selected</span></p>
+        <button id="compareBtn" class="btn-small" data-i18n="compare_now">Compare Now</button>
+      </div>
+    </div>
+
+    <div id="compareModal" class="modal hidden">
+      <div class="modal-overlay"></div>
+      <div class="modal-container">
+        <div class="modal-header">
+          <h2 data-i18n="comparison_result">Side-by-Side Comparison</h2>
+          <button id="closeModal" class="btn-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div id="comparisonTableWrapper" class="table-wrapper">
+            <!-- Comparison table injected here -->
+          </div>
+        </div>
+      </div>
+    </div>
+
     <footer class="site-footer">
       <div class="footer-content">
         <div class="footer-brand">

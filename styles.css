@@ -267,3 +267,116 @@ button#refreshBtn { background: var(--accent); border: none; }
 @media (max-width: 768px) {
   .footer-content { grid-template-columns: 1fr; gap: 2rem; }
 }
+
+/* Compare Tray */
+.compare-tray {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: #fff;
+  padding: 0.75rem 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+.compare-tray.hidden { display: none; }
+.tray-content { display: flex; align-items: center; gap: 1.5rem; }
+#compareBtn { background: #fff; color: var(--accent); border: none; }
+
+/* Modal */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal.hidden { display: none; }
+.modal-overlay {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+}
+.modal-container {
+  position: relative;
+  background: var(--bg-card);
+  width: 90%;
+  max-width: 1000px;
+  max-height: 85vh;
+  border-radius: 1.5rem;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.modal-header {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.btn-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 2rem;
+  cursor: pointer;
+}
+.modal-body {
+  padding: 2rem;
+  overflow-x: auto;
+}
+
+/* Comparison Table */
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.comparison-table th, .comparison-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.comparison-table th {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.comparison-table .row-title { font-weight: 700; color: var(--text); }
+
+/* Selection Circle */
+.compare-checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--text-muted);
+  cursor: pointer;
+  margin-right: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.compare-checkbox.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.compare-checkbox.selected::after {
+  content: '✓';
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 900;
+}
