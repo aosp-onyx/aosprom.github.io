@@ -380,3 +380,58 @@ button#refreshBtn { background: var(--accent); border: none; }
   font-size: 0.7rem;
   font-weight: 900;
 }
+
+/* Show More / Show Less */
+.show-more-wrapper {
+  margin-top: 1rem;
+  text-align: center;
+}
+.btn-toggle-list {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-toggle-list:hover {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+}
+
+/* Device list limit */
+.device-list li.collapsed-hidden {
+  display: none;
+}
+
+/* Back to Top */
+#backToTop {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: var(--accent);
+  color: white;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  transition: opacity 0.3s, transform 0.3s;
+  opacity: 0;
+  pointer-events: none;
+}
+#backToTop.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+#backToTop:hover {
+  transform: translateY(-5px);
+}
