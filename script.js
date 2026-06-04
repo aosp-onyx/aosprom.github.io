@@ -11,17 +11,20 @@ const TRANSLATIONS = {
   en: {
     latest_updates: 'Latest Updates', eyebrow: 'Community ROM Hub', hero_title: 'Next-Gen AOSP Catalog', hero_desc: 'Aggregating real-time data from LineageOS, AlphaDroid, AxionOS, YAAP, and PixelOS.', refresh_btn: 'Refresh Data', search_placeholder: 'Search by device, codename, or ROM name...', system_insight: 'System Insight', warming_up: 'Warming up engine...', onyx_spotlight: 'Onyx Spotlight (Android 16)', onyx_desc: "Kenan's AlphaDroid 16 (onyx) project is currently under active development. Stay tuned for early builds.", source_link: 'Source', devices_found: 'devices found', last_sync: 'Last sync', total_devices: 'Total Devices', matches: 'Matches', sources: 'Sources',
     selected_to_compare: 'devices selected', compare_now: 'Compare Now', comparison_result: 'Side-by-Side Comparison', spec_rom: 'ROM Name', spec_device: 'Device', spec_version: 'Android', spec_status: 'Status', spec_download: 'Download',
-    footer_about: 'Centralized dashboard for tracking AOSP distributions and custom Android projects.', footer_links_title: 'Community', footer_legal_title: 'Disclaimer', footer_legal_text: 'This site is not affiliated with Google or Xiaomi. All ROMs and logos are property of their respective owners.', footer_crafted: 'Crafted with ❤️ by'
+    footer_about: 'Centralized dashboard for tracking AOSP distributions and custom Android projects.', footer_links_title: 'Community', footer_legal_title: 'Disclaimer', footer_legal_text: 'This site is not affiliated with Google or Xiaomi. All ROMs and logos are property of their respective owners.', footer_crafted: 'Crafted with ❤️ by',
+    all_brands: 'All Brands', all_versions: 'All Versions'
   },
   tr: {
     latest_updates: 'Son Güncellemeler', eyebrow: 'Topluluk ROM Merkezi', hero_title: 'Yeni Nesil AOSP Kataloğu', hero_desc: 'LineageOS, AlphaDroid, AxionOS, YAAP ve PixelOS kaynaklarından anlık veriler.', refresh_btn: 'Verileri Yenile', search_placeholder: 'Cihaz, kod adı veya ROM ara...', system_insight: 'Sistem Durumu', warming_up: 'Motor ısınıyor...', onyx_spotlight: 'Onyx Köşesi (Android 16)', onyx_desc: "Kenan'ın AlphaDroid 16 (onyx) projesi şu an aktif geliştirme aşamasındadır. Takipte kalın.", source_link: 'Kaynak', devices_found: 'cihaz bulundu', last_sync: 'Son güncelleme', total_devices: 'Toplam Cihaz', matches: 'Eşleşme', sources: 'Kaynak',
     selected_to_compare: 'cihaz seçildi', compare_now: 'Karşılaştır', comparison_result: 'Yan Yana Karşılaştırma', spec_rom: 'ROM Adı', spec_device: 'Cihaz', spec_version: 'Android', spec_status: 'Durum', spec_download: 'İndir',
-    footer_about: 'AOSP dağıtımlarını ve özel Android projelerini takip etmek için merkezi kontrol paneli.', footer_links_title: 'Topluluk', footer_legal_title: 'Yasal Uyarı', footer_legal_text: 'Bu site Google veya Xiaomi ile bağlantılı değildir. Tüm ROMlar ve logolar sahiplerine aittir.', footer_crafted: '❤️ ile geliştiren:'
+    footer_about: 'AOSP dağıtımlarını ve özel Android projelerini takip etmek için merkezi kontrol paneli.', footer_links_title: 'Topluluk', footer_legal_title: 'Yasal Uyarı', footer_legal_text: 'Bu site Google veya Xiaomi ile bağlantılı değildir. Tüm ROMlar ve logolar sahiplerine aittir.', footer_crafted: '❤️ ile geliştiren:',
+    all_brands: 'Tüm Markalar', all_versions: 'Tüm Sürümler'
   }
 };
 
 let currentLang = localStorage.getItem('lang') || 'en';
 let SELECTED_FOR_COMPARE = [];
+let ALL_DEVICES_DATA = []; // Store all devices for filtering
 
 const romGrid = document.getElementById('romGrid');
 const lastUpdated = document.getElementById('lastUpdated');
@@ -30,6 +33,8 @@ const langBtn = document.getElementById('langBtn');
 const romCountBadge = document.getElementById('romCountBadge');
 const deviceCountBadge = document.getElementById('deviceCountBadge');
 const searchInput = document.getElementById('searchInput');
+const brandFilter = document.getElementById('brandFilter');
+const androidFilter = document.getElementById('androidFilter');
 const tickerContent = document.getElementById('tickerContent');
 const compareTray = document.getElementById('compareTray');
 const compareCount = document.getElementById('compareCount');
@@ -153,23 +158,41 @@ const updateTicker = (allDevices) => {
   tickerContent.innerHTML = sorted.map(d => `<span><strong>${d.romName}</strong>: ${getDeviceLabel(d, d.codename)} (${d.codename})</span>`).join('');
 };
 
+const populateFilters = (allDevices) => {
+  const brands = [...new Set(allDevices.map(d => d.brand || d.oem).filter(Boolean))].sort();
+  const versions = [...new Set(allDevices.map(d => d.version || d.android).filter(Boolean))].sort((a, b) => b - a);
+
+  const currentBrand = brandFilter.value;
+  const currentAndroid = androidFilter.value;
+
+  brandFilter.innerHTML = `<option value="">${TRANSLATIONS[currentLang].all_brands}</option>` + 
+    brands.map(b => `<option value="${b}" ${b === currentBrand ? 'selected' : ''}>${b}</option>`).join('');
+  
+  androidFilter.innerHTML = `<option value="">${TRANSLATIONS[currentLang].all_versions}</option>` + 
+    versions.map(v => `<option value="${v}" ${v === currentAndroid ? 'selected' : ''}>Android ${v}</option>`).join('');
+};
+
 const render = (results) => {
   romGrid.innerHTML = '';
   let globalCount = 0;
-  let allDevices = [];
+  ALL_DEVICES_DATA = [];
   results.forEach(res => {
     const node = romCardTemplate.content.cloneNode(true);
     node.querySelector('h3').textContent = res.name;
     node.querySelector('.source-link').href = res.url;
-    node.querySelector('.rom-card__meta').textContent = `${res.devices.length} ${TRANSLATIONS[current_lang = currentLang].devices_found}`;
+    node.querySelector('.rom-card__meta').textContent = `${res.devices.length} ${TRANSLATIONS[currentLang].devices_found}`;
     
     const list = node.querySelector('.device-list');
     res.devices.forEach((d) => {
       globalCount++;
-      allDevices.push(d);
+      const deviceEntry = { ...d, romName: res.name };
+      ALL_DEVICES_DATA.push(deviceEntry);
+      
       const li = document.createElement('li');
       const code = getDeviceCodename(d).toLowerCase();
       li.dataset.codename = code;
+      li.dataset.brand = (d.brand || d.oem || '').toLowerCase();
+      li.dataset.version = (d.version || d.android || '').toString();
 
       const checkbox = document.createElement('div');
       checkbox.className = 'compare-checkbox';
@@ -208,20 +231,28 @@ const render = (results) => {
   
   deviceCountBadge.textContent = `${globalCount} ${TRANSLATIONS[currentLang].total_devices}`;
   romCountBadge.textContent = `${results.length} ${TRANSLATIONS[currentLang].sources}`;
-  updateTicker(allDevices);
-  document.getElementById('onyxHighlight').hidden = !allDevices.some(d => d.codename.toLowerCase() === 'onyx');
+  updateTicker(ALL_DEVICES_DATA);
+  populateFilters(ALL_DEVICES_DATA);
+  document.getElementById('onyxHighlight').hidden = !ALL_DEVICES_DATA.some(d => d.codename.toLowerCase() === 'onyx');
   filterResults();
 };
 
 const filterResults = () => {
   const term = searchInput.value.toLowerCase();
+  const brand = brandFilter.value.toLowerCase();
+  const version = androidFilter.value.toLowerCase();
+  
   let matches = 0;
   document.querySelectorAll('.rom-card').forEach(card => {
     let cardMatch = false;
     card.querySelectorAll('.device-list li').forEach(li => {
-      const match = li.textContent.toLowerCase().includes(term) || li.dataset.codename.includes(term) || card.querySelector('h3').textContent.toLowerCase().includes(term);
-      li.classList.toggle('hidden', !match);
-      if (match) { cardMatch = true; matches++; }
+      const textMatch = li.textContent.toLowerCase().includes(term) || li.dataset.codename.includes(term) || card.querySelector('h3').textContent.toLowerCase().includes(term);
+      const brandMatch = !brand || li.dataset.brand === brand;
+      const versionMatch = !version || li.dataset.version === version;
+      
+      const isVisible = textMatch && brandMatch && versionMatch;
+      li.classList.toggle('hidden', !isVisible);
+      if (isVisible) { cardMatch = true; matches++; }
     });
     card.classList.toggle('hidden', !cardMatch);
   });
@@ -252,6 +283,8 @@ const refreshData = async () => {
 };
 
 searchInput.addEventListener('input', filterResults);
+brandFilter.addEventListener('change', filterResults);
+androidFilter.addEventListener('change', filterResults);
 refreshBtn.addEventListener('click', refreshData);
 compareBtn.addEventListener('click', showComparisonModal);
 closeModal.addEventListener('click', () => compareModal.classList.add('hidden'));
