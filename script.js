@@ -6,12 +6,12 @@ const ROM_SOURCES = [
 ];
 
 const BACKUP_DEVICES = [
-  { codename: 'onyx', name: 'OnePlus X', brand: 'OnePlus', romName: 'AlphaDroid', version: '15.0' },
-  { codename: 'sweet', name: 'Redmi Note 10 Pro', brand: 'Xiaomi', romName: 'AlphaDroid', version: '15.0' },
-  { codename: 'fuxi', name: 'Xiaomi 13', brand: 'Xiaomi', romName: 'Evolution X', version: '15.0' },
-  { codename: 'marble', name: 'POCO F5', brand: 'Xiaomi', romName: 'AlphaDroid', version: '15.0' },
-  { codename: 'mondrian', name: 'POCO F5 Pro', brand: 'Xiaomi', romName: 'AlphaDroid', version: '15.0' },
-  { codename: 'citrus', name: 'POCO M3', brand: 'Xiaomi', romName: 'LineageOS', version: '14.0' }
+  { codename: 'onyx', name: 'OnePlus X', brand: 'OnePlus', romName: 'AlphaDroid', version: '15.0', status: 'Active' },
+  { codename: 'sweet', name: 'Redmi Note 10 Pro', brand: 'Xiaomi', romName: 'AlphaDroid', version: '15.0', status: 'Active' },
+  { codename: 'fuxi', name: 'Xiaomi 13', brand: 'Xiaomi', romName: 'Evolution X', version: '15.0', status: 'Active' },
+  { codename: 'marble', name: 'POCO F5', brand: 'Xiaomi', romName: 'AlphaDroid', version: '15.0', status: 'Active' },
+  { codename: 'mondrian', name: 'POCO F5 Pro', brand: 'Xiaomi', romName: 'AlphaDroid', version: '15.0', status: 'Active' },
+  { codename: 'citrus', name: 'POCO M3', brand: 'Xiaomi', romName: 'LineageOS', version: '14.0', status: 'Active' }
 ];
 
 const TRANSLATIONS = {
@@ -181,6 +181,7 @@ const render = (results) => {
         <div class="device-info-row">
           <a href="${buildDownloadUrl(romName, d.codename)}" target="_blank">${d.label || d.name}</a>
           ${d.version ? `<span class="version-tag">v${d.version}</span>` : ''}
+          ${d.status === 'Active' ? '<span class="status-badge status-active">Official</span>' : ''}
         </div>
         <code>${d.codename}</code>
       `;
@@ -226,6 +227,14 @@ const filterResults = () => {
   const q = searchInput.value.toLowerCase();
   const b = brandFilter.value.toLowerCase();
   const v = androidFilter.value;
+
+  // Sync with URL
+  const url = new URL(window.location);
+  if (q) url.searchParams.set('q', q); else url.searchParams.delete('q');
+  if (b) url.searchParams.set('brand', b); else url.searchParams.delete('brand');
+  if (v) url.searchParams.set('v', v); else url.searchParams.delete('v');
+  window.history.replaceState({}, '', url);
+
   let matches = 0;
 
   document.querySelectorAll('.rom-card').forEach(card => {
@@ -247,6 +256,13 @@ const refreshData = async () => {
   refreshBtn.disabled = true;
   refreshBtn.textContent = 'Syncing...';
   const results = await Promise.all(ROM_SOURCES.map(fetchSource));
+  
+  // Update URL parameters to match actual state on load
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('q')) searchInput.value = params.get('q');
+  if (params.has('brand')) brandFilter.value = params.get('brand').toLowerCase();
+  if (params.has('v')) androidFilter.value = params.get('v');
+
   render(results);
   lastUpdated.textContent = `Last sync: ${new Date().toLocaleTimeString()}`;
   refreshBtn.disabled = false;
