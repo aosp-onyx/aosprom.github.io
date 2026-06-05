@@ -11,7 +11,7 @@ const ROM_SOURCES = [
   { name: 'LineageOS', url: 'https://raw.githubusercontent.com/LineageOS/hudson/main/updater/devices.json' },
   { name: 'PixelOS (15)', url: 'https://raw.githubusercontent.com/PixelOS-AOSP/official_devices/fifteen/API/devices.json' },
   { name: 'AlphaDroid', url: 'https://api.github.com/repos/AlphaDroid-devices/OTA/contents' },
-  { name: 'Evolution X', url: 'https://api.github.com/repos/Evolution-X/OTA/contents' }
+  { name: 'Evolution X', url: 'https://api.github.com/repos/Evolution-X/OTA/contents/builds' }
 ];
 
 const TRANSLATIONS = {
