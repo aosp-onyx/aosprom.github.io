@@ -213,13 +213,31 @@ main {
   justify-content: space-between;
   align-items: center;
 }
-.device-list li a { color: #cbd5e1; text-decoration: none; font-weight: 500; font-size: 0.9rem; flex: 1; }
-.device-list li a:hover { color: var(--accent); }
-.device-list li code { font-family: monospace; font-size: 0.75rem; color: var(--success); opacity: 0.8; }
-
-/* Badges */
-.badge { background: #1e293b; color: #94a3b8; padding: 0.2rem 0.6rem; border-radius: 0.5rem; font-size: 0.7rem; font-weight: 600; }
-.status-badge { font-size: 0.6rem; padding: 1px 4px; border-radius: 4px; margin-left: 0.5rem; }
+.device-info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+.device-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.device-list li a { 
+  color: var(--text);
+  text-decoration: none; 
+  font-weight: 600; 
+  font-size: 0.95rem; 
+}
+.status-badge {
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 6px;
+  margin-left: 0;
+  font-weight: 700;
+  text-transform: uppercase;
+}
 .status-active { background: rgba(16, 185, 129, 0.1); color: var(--success); }
 
 /* Onyx Spotlight Refined */

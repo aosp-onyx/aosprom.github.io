@@ -174,14 +174,17 @@ const render = (results) => {
       li.dataset.codename = d.codename;
       li.dataset.brand = (d.brand || 'Unknown').toLowerCase();
       li.dataset.version = (d.version || d.android || '').toString();
-      if (idx >= 8) li.classList.add('collapsed-hidden');
+
+      const isOfficial = d.status === 'Active' || romName.includes('LineageOS') || romName.includes('PixelOS');
 
       li.innerHTML = `
         <div class="compare-checkbox"></div>
         <div class="device-info-row">
           <a href="${buildDownloadUrl(romName, d.codename)}" target="_blank">${d.label || d.name}</a>
-          ${d.version ? `<span class="version-tag">v${d.version}</span>` : ''}
-          ${d.status === 'Active' ? '<span class="status-badge status-active">Official</span>' : ''}
+          <div class="device-tags">
+            ${d.version || d.android ? `<span class="version-tag">v${d.version || d.android}</span>` : ''}
+            ${isOfficial ? '<span class="status-badge status-active">Official</span>' : ''}
+          </div>
         </div>
         <code>${d.codename}</code>
       `;
@@ -197,16 +200,6 @@ const render = (results) => {
       list.appendChild(li);
     });
 
-    if (devices.length > 8) {
-      const wrapper = node.querySelector('.show-more-wrapper');
-      wrapper.hidden = false;
-      const btn = wrapper.querySelector('.btn-toggle-list');
-      btn.onclick = () => {
-        const isCollapsed = list.querySelector('.collapsed-hidden');
-        list.querySelectorAll('li').forEach((item, i) => { if (i >= 8) item.classList.toggle('collapsed-hidden'); });
-        btn.textContent = isCollapsed ? 'Show Less' : `Show More (+${devices.length - 8})`;
-      };
-    }
     romGrid.appendChild(node);
   });
 
