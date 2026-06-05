@@ -392,6 +392,14 @@ button#refreshBtn { background: var(--accent); border: none; }
 }
 .comparison-table .row-title { font-weight: 700; color: var(--text); }
 
+/* Device actions group */
+.device-actions-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-right: 0.75rem;
+}
+
 /* Selection Circle */
 .compare-checkbox {
   width: 18px;
@@ -399,11 +407,11 @@ button#refreshBtn { background: var(--accent); border: none; }
   border-radius: 50%;
   border: 2px solid var(--text-muted);
   cursor: pointer;
-  margin-right: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 .compare-checkbox.selected {
   background: var(--accent);
@@ -414,6 +422,24 @@ button#refreshBtn { background: var(--accent); border: none; }
   color: white;
   font-size: 0.7rem;
   font-weight: 900;
+}
+
+/* Star Button */
+.star-btn {
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.star-btn:hover {
+  color: #fbbf24;
+  transform: scale(1.2);
+}
+.star-btn.starred {
+  color: #fbbf24;
 }
 
 /* Show More / Show Less */
