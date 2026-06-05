@@ -38,8 +38,62 @@ const brandFilter = document.getElementById('brandFilter');
 const androidFilter = document.getElementById('androidFilter');
 const tickerContent = document.getElementById('tickerContent');
 const romCardTemplate = document.getElementById('romCardTemplate');
-const themeToggle = document.getElementById('themeToggle');
-const themeIcon = document.getElementById('themeIcon');
+const comparisonTableWrapper = document.getElementById('comparisonTableWrapper');
+const compareModal = document.getElementById('compareModal');
+const closeModal = document.getElementById('closeModal');
+const compareTray = document.getElementById('compareTray');
+const compareCount = document.getElementById('compareCount');
+const compareBtn = document.getElementById('compareBtn');
+
+let SELECTED_FOR_COMPARE = [];
+
+const toggleCompare = (device, el) => {
+  const idx = SELECTED_FOR_COMPARE.findIndex(d => d.codename === device.codename && d.romName === device.romName);
+  if (idx > -1) {
+    SELECTED_FOR_COMPARE.splice(idx, 1);
+    el.classList.remove('selected');
+  } else {
+    if (SELECTED_FOR_COMPARE.length >= 4) {
+      alert(currentLang === 'en' ? 'Max 4 devices for comparison.' : 'En fazla 4 cihaz karşılaştırılabilir.');
+      return;
+    }
+    SELECTED_FOR_COMPARE.push(device);
+    el.classList.add('selected');
+  }
+  compareCount.textContent = SELECTED_FOR_COMPARE.length;
+  compareTray.classList.toggle('hidden', SELECTED_FOR_COMPARE.length === 0);
+};
+
+const showComparisonModal = () => {
+  const t = TRANSLATIONS[currentLang];
+  let html = `<table class="comparison-table">
+    <thead>
+      <tr>
+        <th></th>
+        ${SELECTED_FOR_COMPARE.map(d => `<th>${d.romName}</th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="row-title">${t.spec_device || (currentLang === 'en' ? 'Device' : 'Cihaz')}</td>
+        ${SELECTED_FOR_COMPARE.map(d => `<td>${d.label}<br><code>${d.codename}</code></td>`).join('')}
+      </tr>
+      <tr>
+        <td class="row-title">${t.spec_version || (currentLang === 'en' ? 'Android' : 'Sürüm')}</td>
+        ${SELECTED_FOR_COMPARE.map(d => `<td>v${d.version || 'N/A'}</td>`).join('')}
+      </tr>
+      <tr>
+        <td class="row-title">${t.spec_download || (currentLang === 'en' ? 'Download' : 'İndir')}</td>
+        ${SELECTED_FOR_COMPARE.map(d => `<td><a href="${buildDownloadUrl(d.romName, d.codename)}" target="_blank" class="badge">Link</a></td>`).join('')}
+      </tr>
+    </tbody>
+  </table>`;
+  comparisonTableWrapper.innerHTML = html;
+  compareModal.classList.remove('hidden');
+};
+
+compareBtn.addEventListener('click', showComparisonModal);
+closeModal.addEventListener('click', () => compareModal.classList.add('hidden'));
 
 // Theme Management
 const applyTheme = (theme) => {
@@ -130,6 +184,15 @@ const render = (results) => {
         </div>
         <code>${d.codename}</code>
       `;
+      
+      const cb = li.querySelector('.compare-checkbox');
+      const isSelected = SELECTED_FOR_COMPARE.some(s => s.codename === d.codename && s.romName === romName);
+      if (isSelected) cb.classList.add('selected');
+
+      cb.onclick = () => {
+        toggleCompare({ codename: d.codename, label: d.label || d.name, romName: romName, version: d.version || d.android }, cb);
+      };
+      
       list.appendChild(li);
     });
 
