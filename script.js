@@ -44,6 +44,24 @@ const closeModal = document.getElementById('closeModal');
 const comparisonTableWrapper = document.getElementById('comparisonTableWrapper');
 const backToTop = document.getElementById('backToTop');
 const romCardTemplate = document.getElementById('romCardTemplate');
+const installBtn = document.getElementById('installBtn');
+
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.style.display = 'inline-flex';
+});
+
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') {
+    installBtn.style.display = 'none';
+  }
+  deferredPrompt = null;
+});
 
 const GITHUB_API_HEADERS = { Accept: 'application/vnd.github+json' };
 
@@ -292,6 +310,13 @@ const filterResults = () => {
   const brand = brandFilter.value.toLowerCase();
   const version = androidFilter.value.toLowerCase();
   
+  // Update URL parameters without reloading
+  const url = new URL(window.location);
+  if (term) url.searchParams.set('q', term); else url.searchParams.delete('q');
+  if (brand) url.searchParams.set('brand', brand); else url.searchParams.delete('brand');
+  if (version) url.searchParams.set('v', version); else url.searchParams.delete('v');
+  window.history.replaceState({}, '', url);
+
   let matches = 0;
   document.querySelectorAll('.rom-card').forEach(card => {
     let cardMatch = false;
@@ -330,6 +355,13 @@ const refreshData = async () => {
   lastUpdated.textContent = `${TRANSLATIONS[currentLang].last_sync}: ${new Date().toLocaleTimeString()}`;
   refreshBtn.textContent = TRANSLATIONS[currentLang].refresh_btn;
   refreshBtn.disabled = false;
+
+  // Apply filters from URL on initial load
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('q')) searchInput.value = params.get('q');
+  if (params.has('brand')) brandFilter.value = params.get('brand');
+  if (params.has('v')) androidFilter.value = params.get('v');
+  if (params.has('q') || params.has('brand') || params.has('v')) filterResults();
 };
 
 searchInput.addEventListener('input', filterResults);
