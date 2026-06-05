@@ -11,6 +11,7 @@
   --success: #10b981;
   --error: #ef4444;
   --glass: rgba(10, 13, 20, 0.8);
+  --hero-grad: linear-gradient(to bottom, #fff 40%, #94a3b8);
 }
 
 [data-theme="light"] {
@@ -26,6 +27,7 @@
   --success: #059669;
   --error: #dc2626;
   --glass: rgba(255, 255, 255, 0.8);
+  --hero-grad: linear-gradient(to bottom, #000 40%, #475569);
 }
 
 * {
@@ -46,7 +48,7 @@ body {
 
 /* Slim Ticker */
 .ticker-container {
-  background: #000;
+  background: var(--bg-elev);
   color: var(--text-muted);
   padding: 4px 1rem;
   display: flex;
@@ -81,7 +83,7 @@ body {
   font-weight: 900;
   letter-spacing: -0.04em;
   margin-bottom: 1rem;
-  background: linear-gradient(to bottom, #fff 40%, #94a3b8);
+  background: var(--hero-grad);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -125,7 +127,7 @@ body {
 #searchInput {
   background: transparent;
   border: none;
-  color: #fff;
+  color: var(--text);
   font-size: 1rem;
   width: 100%;
   padding: 1rem 0;
