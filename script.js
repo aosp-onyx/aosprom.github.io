@@ -73,9 +73,17 @@ themeToggle.addEventListener('click', () => {
 const getDeviceCodename = (d) => (d.codename || d.device || d.id || d.model || 'unknown').toLowerCase();
 const getDeviceLabel = (d, code) => d.device_name || d.name || d.model || code;
 
-const buildDownloadUrl = (romName, codename) => {
-  if (romName === 'LineageOS') return `https://download.lineageos.org/devices/${codename}/builds`;
-  return `https://www.google.com/search?q=${romName}+${codename}+download`;
+const buildDownloadUrl = (romName, codename, device) => {
+  if (device && device.url) return device.url;
+  if (device && device.download) return device.download;
+  
+  const code = codename.toLowerCase();
+  if (romName === 'LineageOS') return `https://download.lineageos.org/devices/${code}/builds`;
+  if (romName.includes('PixelOS')) return `https://pixelos.net/download/${code}`;
+  if (romName.includes('Evolution X')) return `https://evolution-x.org/download/${code}`;
+  if (romName.includes('AlphaDroid')) return `https://sourceforge.net/projects/alphadroid/files/${code}/`;
+  
+  return `https://www.google.com/search?q=${romName}+${codename}+official+download`;
 };
 
 const toggleCompare = (device, el) => {
@@ -124,7 +132,7 @@ const showComparisonModal = () => {
       </tr>
       <tr>
         <td class="row-title">${t.spec_download || (currentLang === 'en' ? 'Download' : 'İndir')}</td>
-        ${SELECTED_FOR_COMPARE.map(d => `<td><a href="${buildDownloadUrl(d.romName, d.codename)}" target="_blank" class="badge">Link</a></td>`).join('')}
+        ${SELECTED_FOR_COMPARE.map(d => `<td><a href="${buildDownloadUrl(d.romName, d.codename, d)}" target="_blank" class="badge">Link</a></td>`).join('')}
       </tr>
     </tbody>
   </table>`;
@@ -205,7 +213,7 @@ const render = (results) => {
           </div>
         </div>
         <div class="device-info-row">
-          <a href="${buildDownloadUrl(romName, d.codename)}" target="_blank">${d.label || d.name}</a>
+          <a href="${buildDownloadUrl(romName, d.codename, d)}" target="_blank">${d.label || d.name}</a>
           <div class="device-tags">
             ${d.version || d.android ? `<span class="version-tag">v${d.version || d.android}</span>` : ''}
             ${isOfficial ? '<span class="status-badge status-active">Official</span>' : ''}
