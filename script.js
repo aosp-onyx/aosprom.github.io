@@ -356,12 +356,14 @@ const refreshData = async () => {
   refreshBtn.textContent = TRANSLATIONS[currentLang].refresh_btn;
   refreshBtn.disabled = false;
 
-  // Apply filters from URL on initial load
+  // Apply filters from URL on initial load - ONLY if the inputs actually have values
   const params = new URLSearchParams(window.location.search);
-  if (params.has('q')) searchInput.value = params.get('q');
-  if (params.has('brand')) brandFilter.value = params.get('brand');
-  if (params.has('v')) androidFilter.value = params.get('v');
-  if (params.has('q') || params.has('brand') || params.has('v')) filterResults();
+  let shouldFilter = false;
+  if (params.has('q')) { searchInput.value = params.get('q'); shouldFilter = true; }
+  if (params.has('brand')) { brandFilter.value = params.get('brand'); shouldFilter = true; }
+  if (params.has('v')) { androidFilter.value = params.get('v'); shouldFilter = true; }
+  
+  if (shouldFilter) filterResults();
 };
 
 searchInput.addEventListener('input', filterResults);
