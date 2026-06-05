@@ -571,6 +571,74 @@ button#refreshBtn { background: var(--accent); border: none; }
   color: #fff;
 }
 
-.device-list li.collapsed-hidden {
-  display: none !important;
+/* Search & Filter Polish */
+.device-list li code { 
+  font-family: 'JetBrains Mono', monospace; 
+  font-size: 0.7rem; 
+  color: var(--success); 
+  background: rgba(16, 185, 129, 0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+.device-list li code:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: var(--success);
+}
+.device-list li code:active {
+  transform: scale(0.95);
+}
+
+/* Empty Search State */
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 4rem 2rem;
+  background: var(--bg-card);
+  border: 1px dashed var(--border);
+  border-radius: 1.5rem;
+  color: var(--text-muted);
+}
+.empty-state svg {
+  margin-bottom: 1rem;
+  opacity: 0.5;
+  color: var(--accent);
+}
+
+/* Transitions */
+.rom-card {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+}
+.rom-card.hidden {
+  display: none;
+  opacity: 0;
+}
+.device-list li {
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.device-list li:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Toast/Tooltip for copy */
+.copy-toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 2rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+  z-index: 10000;
+  animation: slide-up-fade 0.3s ease-out;
+}
+@keyframes slide-up-fade {
+  from { transform: translate(-50%, 1rem); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
 }

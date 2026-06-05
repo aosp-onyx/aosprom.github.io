@@ -17,11 +17,13 @@ const ROM_SOURCES = [
 const TRANSLATIONS = {
   en: {
     latest_updates: 'Latest Updates', eyebrow: 'Community ROM Hub', hero_title: 'Next-Gen AOSP Catalog', hero_desc: 'Aggregating real-time data from multiple sources.', refresh_btn: 'Refresh Data', search_placeholder: 'Search by device, codename, or ROM name...', system_insight: 'System Insight', warming_up: 'Warming up engine...', onyx_spotlight: 'Onyx Spotlight (Android 16)', onyx_desc: "Kenan's AlphaDroid 16 (onyx) project is currently under active development.", source_link: 'Source', devices_found: 'devices found', last_sync: 'Last sync', total_devices: 'Total Devices', matches: 'Matches', sources: 'Sources',
-    all_brands: 'All Brands', all_versions: 'All Versions', show_more: 'Show More', show_less: 'Show Less'
+    all_brands: 'All Brands', all_versions: 'All Versions', show_more: 'Show More', show_less: 'Show Less',
+    no_results: 'No devices found matching your filters.', copied: 'Codename copied to clipboard!'
   },
   tr: {
     latest_updates: 'Son Güncellemeler', eyebrow: 'Topluluk ROM Merkezi', hero_title: 'Yeni Nesil AOSP Kataloğu', hero_desc: 'Çeşitli kaynaklardan anlık veriler.', refresh_btn: 'Verileri Yenile', search_placeholder: 'Cihaz, kod adı veya ROM ara...', system_insight: 'Sistem Durumu', warming_up: 'Motor ısınıyor...', onyx_spotlight: 'Onyx Köşesi (Android 16)', onyx_desc: "Kenan'ın AlphaDroid 16 (onyx) projesi şu an aktif geliştirme aşamasındadır.", source_link: 'Kaynak', devices_found: 'cihaz bulundu', last_sync: 'Son güncelleme', total_devices: 'Toplam Cihaz', matches: 'Eşleşme', sources: 'Kaynak',
-    all_brands: 'Tüm Markalar', all_versions: 'Tüm Sürümler', show_more: 'Daha Fazla', show_less: 'Daha Az'
+    all_brands: 'Tüm Markalar', all_versions: 'Tüm Sürümler', show_more: 'Daha Fazla', show_less: 'Daha Az',
+    no_results: 'Filtrelere uygun cihaz bulunamadı.', copied: 'Kod adı panoya kopyalandı!'
   }
 };
 
@@ -52,13 +54,11 @@ let SELECTED_FOR_COMPARE = [];
 let STARRED_DEVICES = JSON.parse(localStorage.getItem('starred_devices') || '[]');
 let lastResults = [];
 
-// Theme Management
 const applyTheme = (theme) => {
   document.documentElement.setAttribute('data-theme', theme);
   const isLight = theme === 'light';
   themeIcon.innerHTML = isLight 
-    ? '<path fill="currentColor" d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>' // Moon
-    : '<path fill="currentColor" d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/>'; // Sun
+    ? '<path fill="currentColor" d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>' : '<path fill="currentColor" d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/>';
 };
 
 let currentTheme = localStorage.getItem('theme') || 'dark';
@@ -76,14 +76,20 @@ const getDeviceLabel = (d, code) => d.device_name || d.name || d.model || code;
 const buildDownloadUrl = (romName, codename, device) => {
   if (device && device.url) return device.url;
   if (device && device.download) return device.download;
-  
   const code = codename.toLowerCase();
   if (romName === 'LineageOS') return `https://download.lineageos.org/devices/${code}/builds`;
   if (romName.includes('PixelOS')) return `https://pixelos.net/download/${code}`;
   if (romName.includes('Evolution X')) return `https://evolution-x.org/download/${code}`;
   if (romName.includes('AlphaDroid')) return `https://sourceforge.net/projects/alphadroid/files/${code}/`;
-  
   return `https://www.google.com/search?q=${romName}+${codename}+official+download`;
+};
+
+const showToast = (msg) => {
+  const toast = document.createElement('div');
+  toast.className = 'copy-toast';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2000);
 };
 
 const toggleCompare = (device, el) => {
@@ -116,22 +122,19 @@ const showComparisonModal = () => {
   const t = TRANSLATIONS[currentLang];
   let html = `<table class="comparison-table">
     <thead>
-      <tr>
-        <th></th>
-        ${SELECTED_FOR_COMPARE.map(d => `<th>${d.romName}</th>`).join('')}
-      </tr>
+      <tr><th></th>${SELECTED_FOR_COMPARE.map(d => `<th>${d.romName}</th>`).join('')}</tr>
     </thead>
     <tbody>
       <tr>
-        <td class="row-title">${t.spec_device || (currentLang === 'en' ? 'Device' : 'Cihaz')}</td>
+        <td class="row-title">${t.spec_device || 'Device'}</td>
         ${SELECTED_FOR_COMPARE.map(d => `<td>${d.label}<br><code>${d.codename}</code></td>`).join('')}
       </tr>
       <tr>
-        <td class="row-title">${t.spec_version || (currentLang === 'en' ? 'Android' : 'Sürüm')}</td>
+        <td class="row-title">${t.spec_version || 'Android'}</td>
         ${SELECTED_FOR_COMPARE.map(d => `<td>v${d.version || 'N/A'}</td>`).join('')}
       </tr>
       <tr>
-        <td class="row-title">${t.spec_download || (currentLang === 'en' ? 'Download' : 'İndir')}</td>
+        <td class="row-title">${t.spec_download || 'Download'}</td>
         ${SELECTED_FOR_COMPARE.map(d => `<td><a href="${buildDownloadUrl(d.romName, d.codename, d)}" target="_blank" class="badge">Link</a></td>`).join('')}
       </tr>
     </tbody>
@@ -149,16 +152,10 @@ const fetchSource = async (source) => {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const payload = await res.json();
     let devices = [];
-    
     if (source.name === 'AlphaDroid' || source.name === 'Evolution X') {
-       devices = payload.filter(e => e.name.endsWith('.json')).map(e => ({ 
-         codename: e.name.replace('.json', ''), 
-         romName: source.name 
-       }));
+       devices = payload.filter(e => e.name.endsWith('.json')).map(e => ({ codename: e.name.replace('.json', ''), romName: source.name }));
     } else {
-       devices = (Array.isArray(payload) ? payload : (payload.devices || Object.entries(payload).map(([c, v]) => ({ codename: c, ...v })))).map(d => ({
-         ...d, romName: source.name, brand: d.brand || d.oem || 'Unknown'
-       }));
+       devices = (Array.isArray(payload) ? payload : (payload.devices || Object.entries(payload).map(([c, v]) => ({ codename: c, ...v })))).map(d => ({ ...d, romName: source.name, brand: d.brand || d.oem || 'Unknown' }));
     }
     return { ...source, devices, error: null };
   } catch (e) {
@@ -202,7 +199,6 @@ const render = (results) => {
       li.dataset.codename = d.codename;
       li.dataset.brand = (d.brand || 'Unknown').toLowerCase();
       li.dataset.version = (d.version || d.android || '').toString();
-
       const isOfficial = d.status === 'Active' || romName.includes('LineageOS') || romName.includes('PixelOS');
 
       li.innerHTML = `
@@ -219,23 +215,23 @@ const render = (results) => {
             ${isOfficial ? '<span class="status-badge status-active">Official</span>' : ''}
           </div>
         </div>
-        <code>${d.codename}</code>
+        <code title="Click to copy">${d.codename}</code>
       `;
       
       const cb = li.querySelector('.compare-checkbox');
-      const isSelected = SELECTED_FOR_COMPARE.some(s => s.codename === d.codename && s.romName === romName);
-      if (isSelected) cb.classList.add('selected');
-
-      cb.onclick = () => {
-        toggleCompare({ codename: d.codename, label: d.label || d.name, romName: romName, version: d.version || d.android }, cb);
-      };
+      if (SELECTED_FOR_COMPARE.some(s => s.codename === d.codename && s.romName === romName)) cb.classList.add('selected');
+      cb.onclick = () => toggleCompare({ codename: d.codename, label: d.label || d.name, romName: romName, version: d.version || d.android }, cb);
 
       const sb = li.querySelector('.star-btn');
       sb.onclick = () => toggleStar({ codename: d.codename, romName: romName });
-      
+
+      const codeTag = li.querySelector('code');
+      codeTag.onclick = () => {
+        navigator.clipboard.writeText(d.codename);
+        showToast(TRANSLATIONS[currentLang].copied);
+      };
       list.appendChild(li);
     });
-
     romGrid.appendChild(node);
   });
 
@@ -256,7 +252,6 @@ const filterResults = () => {
   const q = searchInput.value.toLowerCase();
   const b = brandFilter.value.toLowerCase();
   const v = androidFilter.value;
-
   const url = new URL(window.location);
   if (q) url.searchParams.set('q', q); else url.searchParams.delete('q');
   if (b) url.searchParams.set('brand', b); else url.searchParams.delete('brand');
@@ -276,6 +271,20 @@ const filterResults = () => {
     });
     card.classList.toggle('hidden', !cardMatch);
   });
+
+  // Handle empty state
+  const noRes = document.getElementById('noResults');
+  if (matches === 0) {
+    if (!noRes) {
+      const div = document.createElement('div');
+      div.id = 'noResults';
+      div.className = 'empty-state';
+      div.innerHTML = `<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><p>${TRANSLATIONS[currentLang].no_results}</p>`;
+      romGrid.appendChild(div);
+    }
+  } else if (noRes) {
+    noRes.remove();
+  }
   deviceCountBadge.textContent = `${matches} Matches`;
 };
 
@@ -283,12 +292,10 @@ const refreshData = async () => {
   refreshBtn.disabled = true;
   refreshBtn.textContent = 'Syncing...';
   const results = await Promise.all(ROM_SOURCES.map(fetchSource));
-  
   const params = new URLSearchParams(window.location.search);
   if (params.has('q')) searchInput.value = params.get('q');
   if (params.has('brand')) brandFilter.value = params.get('brand').toLowerCase();
   if (params.has('v')) androidFilter.value = params.get('v');
-
   render(results);
   lastUpdated.textContent = `Last sync: ${new Date().toLocaleTimeString()}`;
   refreshBtn.disabled = false;
