@@ -186,14 +186,14 @@ const populateFilters = (allDevices) => {
   const brands = [...new Set(allDevices.map(d => d.brand || d.oem).filter(Boolean))].sort();
   const versions = [...new Set(allDevices.map(d => d.version || d.android).filter(Boolean))].sort((a, b) => b - a);
 
-  const currentBrand = brandFilter.value;
+  const currentBrand = brandFilter.value.toLowerCase();
   const currentAndroid = androidFilter.value;
 
   brandFilter.innerHTML = `<option value="">${TRANSLATIONS[currentLang].all_brands}</option>` + 
-    brands.map(b => `<option value="${b}" ${b === currentBrand ? 'selected' : ''}>${b}</option>`).join('');
+    brands.map(b => `<option value="${b.toLowerCase()}" ${b.toLowerCase() === currentBrand ? 'selected' : ''}>${b}</option>`).join('');
   
   androidFilter.innerHTML = `<option value="">${TRANSLATIONS[currentLang].all_versions}</option>` + 
-    versions.map(v => `<option value="${v}" ${v === currentAndroid ? 'selected' : ''}>Android ${v}</option>`).join('');
+    versions.map(v => `<option value="${v}" ${v.toString() === currentAndroid ? 'selected' : ''}>Android ${v}</option>`).join('');
 };
 
 const render = (results) => {
@@ -210,13 +210,13 @@ const render = (results) => {
         <button class="btn primary" style="margin-top: 20px;" onclick="refreshData()">Retry Now</button>
       </div>
     `;
+    return;
   }
 
   results.forEach(res => {
     if (res.devices.length === 0 && !res.error) return;
 
     const node = romCardTemplate.content.cloneNode(true);
-    const cardEl = node.querySelector('.rom-card');
     node.querySelector('h3').textContent = res.name;
     node.querySelector('.source-link').href = res.url;
     
@@ -302,7 +302,11 @@ const render = (results) => {
   updateTicker(ALL_DEVICES_DATA);
   populateFilters(ALL_DEVICES_DATA);
   document.getElementById('onyxHighlight').hidden = !ALL_DEVICES_DATA.some(d => d.codename.toLowerCase() === 'onyx');
-  filterResults();
+  
+  // Only auto-filter if there are actually active filters in the UI
+  if (searchInput.value || brandFilter.value || androidFilter.value) {
+    filterResults();
+  }
 };
 
 const filterResults = () => {
@@ -332,6 +336,27 @@ const filterResults = () => {
     card.classList.toggle('hidden', !cardMatch);
   });
   deviceCountBadge.textContent = `${matches} ${TRANSLATIONS[currentLang].matches}`;
+
+  // Show "No matches" if everything is hidden
+  const noMatchMsg = document.getElementById('noMatchMsg');
+  if (matches === 0 && (term || brand || version)) {
+    if (!noMatchMsg) {
+      const msg = document.createElement('div');
+      msg.id = 'noMatchMsg';
+      msg.style.cssText = 'grid-column: 1/-1; text-align: center; padding: 40px;';
+      msg.innerHTML = `<p class="muted">No devices match your filters.</p><button class="btn-small" onclick="clearFilters()" style="margin-top:10px;">Clear All Filters</button>`;
+      romGrid.appendChild(msg);
+    }
+  } else if (noMatchMsg) {
+    noMatchMsg.remove();
+  }
+};
+
+const clearFilters = () => {
+  searchInput.value = '';
+  brandFilter.value = '';
+  androidFilter.value = '';
+  filterResults();
 };
 
 window.onscroll = () => {
@@ -351,19 +376,23 @@ const refreshData = async () => {
   refreshBtn.disabled = true;
   refreshBtn.textContent = currentLang === 'en' ? 'Syncing...' : 'Eşitleniyor...';
   const results = await Promise.all(ROM_SOURCES.map(loadSource));
+  
+  // 1. Build UI and populate filter options
   render(results);
+  
+  // 2. Set filter values from URL params
+  const params = new URLSearchParams(window.location.search);
+  let hasUrlFilters = false;
+  if (params.has('q')) { searchInput.value = params.get('q'); hasUrlFilters = true; }
+  if (params.has('brand')) { brandFilter.value = params.get('brand').toLowerCase(); hasUrlFilters = true; }
+  if (params.has('v')) { androidFilter.value = params.get('v'); hasUrlFilters = true; }
+  
+  // 3. Run filtering
+  if (hasUrlFilters) filterResults();
+
   lastUpdated.textContent = `${TRANSLATIONS[currentLang].last_sync}: ${new Date().toLocaleTimeString()}`;
   refreshBtn.textContent = TRANSLATIONS[currentLang].refresh_btn;
   refreshBtn.disabled = false;
-
-  // Apply filters from URL on initial load - ONLY if the inputs actually have values
-  const params = new URLSearchParams(window.location.search);
-  let shouldFilter = false;
-  if (params.has('q')) { searchInput.value = params.get('q'); shouldFilter = true; }
-  if (params.has('brand')) { brandFilter.value = params.get('brand'); shouldFilter = true; }
-  if (params.has('v')) { androidFilter.value = params.get('v'); shouldFilter = true; }
-  
-  if (shouldFilter) filterResults();
 };
 
 searchInput.addEventListener('input', filterResults);
