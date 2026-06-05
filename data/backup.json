@@ -1,0 +1,10 @@
+[
+  {
+    "name": "LineageOS (Backup)",
+    "url": "https://lineageos.org",
+    "devices": [
+      { "model": "onyx", "name": "OnePlus X", "oem": "OnePlus", "version": "14.0" },
+      { "model": "sweet", "name": "Redmi Note 10 Pro", "oem": "Xiaomi", "version": "14.0" }
+    ]
+  }
+]
