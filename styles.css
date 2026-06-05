@@ -470,3 +470,46 @@ button#refreshBtn { background: var(--accent); border: none; }
 .show-more-wrapper {
   display: none !important;
 }
+
+/* Skeleton & Show More */
+.skeleton-loader {
+  height: 200px;
+  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-elev) 50%, var(--bg-card) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 1.5rem;
+  border: 1px solid var(--border);
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.show-more-wrapper {
+  margin-top: 1rem;
+  text-align: center;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.btn-toggle-list {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-toggle-list:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.device-list li.collapsed-hidden {
+  display: none !important;
+}
