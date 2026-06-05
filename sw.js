@@ -1,4 +1,4 @@
-const CACHE_NAME = 'romhub-v1';
+const CACHE_NAME = 'romhub-v2';
 const ASSETS = [
   'index.html',
   'styles.css',

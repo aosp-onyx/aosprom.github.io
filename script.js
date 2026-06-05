@@ -197,115 +197,117 @@ const populateFilters = (allDevices) => {
 };
 
 const render = (results) => {
-  romGrid.innerHTML = '';
-  let globalCount = 0;
-  ALL_DEVICES_DATA = [];
-  
-  const hasValidData = results.some(res => res.devices.length > 0);
-  if (!hasValidData) {
-    romGrid.innerHTML = `
-      <div class="card" style="grid-column: 1/-1; text-align: center; padding: 40px;">
-        <h3 style="color: var(--error)">Connection Error</h3>
-        <p class="muted">Could not fetch data from sources. Please check your connection or try again later.</p>
-        <button class="btn primary" style="margin-top: 20px;" onclick="refreshData()">Retry Now</button>
-      </div>
-    `;
-    return;
-  }
-
-  results.forEach(res => {
-    if (res.devices.length === 0 && !res.error) return;
-
-    const node = romCardTemplate.content.cloneNode(true);
-    node.querySelector('h3').textContent = res.name;
-    node.querySelector('.source-link').href = res.url;
+  try {
+    romGrid.innerHTML = '';
+    let globalCount = 0;
+    ALL_DEVICES_DATA = [];
     
-    if (res.error) {
-      const errorMsg = node.querySelector('.rom-card__error');
-      errorMsg.textContent = `Source offline: ${res.error}`;
-      errorMsg.hidden = false;
-      node.querySelector('.rom-card__meta').textContent = `Offline`;
-    } else {
-      node.querySelector('.rom-card__meta').textContent = `${res.devices.length} ${TRANSLATIONS[currentLang].devices_found}`;
+    const hasValidData = results.some(res => res.devices.length > 0);
+    if (!hasValidData) {
+      romGrid.innerHTML = `
+        <div class="card" style="grid-column: 1/-1; text-align: center; padding: 40px;">
+          <h3 style="color: var(--error)">No Data Available</h3>
+          <p class="muted">All sources returned empty or failed. Check your connection or GitHub API limits.</p>
+          <button class="btn primary" style="margin-top: 20px;" onclick="refreshData()">Retry Now</button>
+        </div>
+      `;
+      return;
     }
-    
-    const list = node.querySelector('.device-list');
-    const COLLAPSE_LIMIT = 8;
-    
-    res.devices.forEach((d, idx) => {
-      globalCount++;
-      const deviceEntry = { ...d, romName: res.name };
-      ALL_DEVICES_DATA.push(deviceEntry);
+
+    results.forEach(res => {
+      if (res.devices.length === 0 && !res.error) return;
+
+      const node = romCardTemplate.content.cloneNode(true);
+      node.querySelector('h3').textContent = res.name;
+      node.querySelector('.source-link').href = res.url;
       
-      const li = document.createElement('li');
-      const code = getDeviceCodename(d).toLowerCase();
-      li.dataset.codename = code;
-      li.dataset.brand = (d.brand || d.oem || '').toLowerCase();
-      li.dataset.version = (d.version || d.android || '').toString();
+      if (res.error) {
+        const errorMsg = node.querySelector('.rom-card__error');
+        errorMsg.textContent = `Source offline: ${res.error}`;
+        errorMsg.hidden = false;
+        node.querySelector('.rom-card__meta').textContent = `Offline`;
+      } else {
+        node.querySelector('.rom-card__meta').textContent = `${res.devices.length} ${TRANSLATIONS[currentLang].devices_found}`;
+      }
       
-      if (idx >= COLLAPSE_LIMIT) {
-        li.classList.add('collapsed-hidden');
+      const list = node.querySelector('.device-list');
+      const COLLAPSE_LIMIT = 8;
+      
+      res.devices.forEach((d, idx) => {
+        globalCount++;
+        const deviceEntry = { ...d, romName: res.name };
+        ALL_DEVICES_DATA.push(deviceEntry);
+        
+        const li = document.createElement('li');
+        const code = getDeviceCodename(d).toLowerCase();
+        li.dataset.codename = code;
+        li.dataset.brand = (d.brand || d.oem || '').toLowerCase();
+        li.dataset.version = (d.version || d.android || '').toString();
+        
+        if (idx >= COLLAPSE_LIMIT) {
+          li.classList.add('collapsed-hidden');
+        }
+
+        const checkbox = document.createElement('div');
+        checkbox.className = 'compare-checkbox';
+        if (SELECTED_FOR_COMPARE.some(s => s.codename === code && s.romName === res.name)) checkbox.classList.add('selected');
+        checkbox.onclick = () => toggleCompare({ 
+          codename: code, label: getDeviceLabel(d, code), romName: res.name, version: d.version || d.android, status: getMaintenanceStatus(d.datetime), downloadUrl: buildDownloadUrl(res.name, code, d) 
+        }, checkbox);
+
+        const infoWrapper = document.createElement('div');
+        infoWrapper.className = 'device-info-row';
+        const a = document.createElement('a');
+        a.href = d.url || d.download_url || '#';
+        a.target = '_blank';
+        a.textContent = getDeviceLabel(d, code);
+        const status = getMaintenanceStatus(d.datetime);
+        if (status) {
+          const s = document.createElement('span');
+          s.className = `status-badge status-${status.toLowerCase()}`;
+          s.textContent = status;
+          a.appendChild(s);
+        }
+        if (d.version || d.android) {
+          const v = document.createElement('span');
+          v.className = 'version-tag';
+          v.textContent = `v${d.version || d.android}`;
+          infoWrapper.appendChild(v);
+        }
+        const c = document.createElement('code');
+        c.textContent = code;
+        infoWrapper.prepend(a);
+        li.append(checkbox, infoWrapper, c);
+        list.appendChild(li);
+      });
+
+      if (res.devices.length > COLLAPSE_LIMIT) {
+        const wrapper = node.querySelector('.show-more-wrapper');
+        const btn = wrapper.querySelector('.btn-toggle-list');
+        wrapper.hidden = false;
+        btn.textContent = `${TRANSLATIONS[currentLang].show_more} (+${res.devices.length - COLLAPSE_LIMIT})`;
+        btn.onclick = () => {
+          const isCollapsed = list.querySelector('.collapsed-hidden');
+          list.querySelectorAll('li').forEach((li, idx) => {
+            if (idx >= COLLAPSE_LIMIT) li.classList.toggle('collapsed-hidden');
+          });
+          btn.textContent = isCollapsed ? TRANSLATIONS[currentLang].show_less : `${TRANSLATIONS[currentLang].show_more} (+${res.devices.length - COLLAPSE_LIMIT})`;
+        };
       }
 
-      const checkbox = document.createElement('div');
-      checkbox.className = 'compare-checkbox';
-      if (SELECTED_FOR_COMPARE.some(s => s.codename === code && s.romName === res.name)) checkbox.classList.add('selected');
-      checkbox.onclick = () => toggleCompare({ 
-        codename: code, label: getDeviceLabel(d, code), romName: res.name, version: d.version || d.android, status: getMaintenanceStatus(d.datetime), downloadUrl: buildDownloadUrl(res.name, code, d) 
-      }, checkbox);
-
-      const infoWrapper = document.createElement('div');
-      infoWrapper.className = 'device-info-row';
-      const a = document.createElement('a');
-      a.href = d.url || d.download_url || '#';
-      a.target = '_blank';
-      a.textContent = getDeviceLabel(d, code);
-      const status = getMaintenanceStatus(d.datetime);
-      if (status) {
-        const s = document.createElement('span');
-        s.className = `status-badge status-${status.toLowerCase()}`;
-        s.textContent = status;
-        a.appendChild(s);
-      }
-      if (d.version || d.android) {
-        const v = document.createElement('span');
-        v.className = 'version-tag';
-        v.textContent = `v${d.version || d.android}`;
-        infoWrapper.appendChild(v);
-      }
-      const c = document.createElement('code');
-      c.textContent = code;
-      infoWrapper.prepend(a);
-      li.append(checkbox, infoWrapper, c);
-      list.appendChild(li);
+      romGrid.appendChild(node);
     });
-
-    if (res.devices.length > COLLAPSE_LIMIT) {
-      const wrapper = node.querySelector('.show-more-wrapper');
-      const btn = wrapper.querySelector('.btn-toggle-list');
-      wrapper.hidden = false;
-      btn.textContent = `${TRANSLATIONS[currentLang].show_more} (+${res.devices.length - COLLAPSE_LIMIT})`;
-      btn.onclick = () => {
-        const isCollapsed = list.querySelector('.collapsed-hidden');
-        list.querySelectorAll('li').forEach((li, idx) => {
-          if (idx >= COLLAPSE_LIMIT) li.classList.toggle('collapsed-hidden');
-        });
-        btn.textContent = isCollapsed ? TRANSLATIONS[currentLang].show_less : `${TRANSLATIONS[currentLang].show_more} (+${res.devices.length - COLLAPSE_LIMIT})`;
-      };
-    }
-
-    romGrid.appendChild(node);
-  });
-  
-  deviceCountBadge.textContent = `${globalCount} ${TRANSLATIONS[currentLang].total_devices}`;
-  romCountBadge.textContent = `${results.length} ${TRANSLATIONS[currentLang].sources}`;
-  updateTicker(ALL_DEVICES_DATA);
-  populateFilters(ALL_DEVICES_DATA);
-  document.getElementById('onyxHighlight').hidden = !ALL_DEVICES_DATA.some(d => d.codename.toLowerCase() === 'onyx');
-  
-  // Only auto-filter if there are actually active filters in the UI
-  if (searchInput.value || brandFilter.value || androidFilter.value) {
+    
+    deviceCountBadge.textContent = `${globalCount} ${TRANSLATIONS[currentLang].total_devices}`;
+    romCountBadge.textContent = `${results.length} ${TRANSLATIONS[currentLang].sources}`;
+    updateTicker(ALL_DEVICES_DATA);
+    populateFilters(ALL_DEVICES_DATA);
+    document.getElementById('onyxHighlight').hidden = !ALL_DEVICES_DATA.some(d => d.codename.toLowerCase() === 'onyx');
+    
     filterResults();
+  } catch (err) {
+    console.error("Render error:", err);
+    romGrid.innerHTML = `<div class="card" style="grid-column: 1/-1; text-align: center; padding: 40px;"><h3 style="color: var(--error)">App Error</h3><p class="muted">${err.message}</p></div>`;
   }
 };
 
