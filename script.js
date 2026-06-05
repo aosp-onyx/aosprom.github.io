@@ -138,6 +138,7 @@ const loadSource = async (source) => {
     if (source.type === 'alphadroid-repo' || source.type === 'yaap-repo') result = await loadRepoStyle(source);
     else {
       const res = await fetch(source.url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const payload = await res.json();
       const devices = (Array.isArray(payload) ? payload : payload.devices || Object.entries(payload).map(([c, v]) => ({ codename: c, ...v }))).map(d => ({
         ...d, datetime: d.datetime || d.date || null, romName: source.name
@@ -147,13 +148,18 @@ const loadSource = async (source) => {
     localStorage.setItem(cacheKey, JSON.stringify({ devices: result.devices, timestamp: Date.now() }));
     return result;
   } catch (e) {
+    console.error(`Error loading ${source.name}:`, e);
     const cached = localStorage.getItem(cacheKey);
-    if (cached) return { name: source.name, url: source.url, devices: JSON.parse(cached).devices, isCached: true };
+    if (cached) return { name: source.name, url: source.url, devices: JSON.parse(cached).devices, isCached: true, error: e.message };
     return { name: source.name, url: source.url, devices: [], error: e.message };
   }
 };
 
 const updateTicker = (allDevices) => {
+  if (allDevices.length === 0) {
+    tickerContent.innerHTML = `<span class="muted">Waiting for updates...</span>`;
+    return;
+  }
   const sorted = allDevices.filter(d => d.datetime).sort((a, b) => b.datetime - a.datetime).slice(0, 10);
   tickerContent.innerHTML = sorted.map(d => `<span><strong>${d.romName}</strong>: ${getDeviceLabel(d, d.codename)} (${d.codename})</span>`).join('');
 };
@@ -176,11 +182,33 @@ const render = (results) => {
   romGrid.innerHTML = '';
   let globalCount = 0;
   ALL_DEVICES_DATA = [];
+  
+  const hasValidData = results.some(res => res.devices.length > 0);
+  if (!hasValidData) {
+    romGrid.innerHTML = `
+      <div class="card" style="grid-column: 1/-1; text-align: center; padding: 40px;">
+        <h3 style="color: var(--error)">Connection Error</h3>
+        <p class="muted">Could not fetch data from sources. Please check your connection or try again later.</p>
+        <button class="btn primary" style="margin-top: 20px;" onclick="refreshData()">Retry Now</button>
+      </div>
+    `;
+  }
+
   results.forEach(res => {
+    if (res.devices.length === 0 && !res.error) return;
+
     const node = romCardTemplate.content.cloneNode(true);
     node.querySelector('h3').textContent = res.name;
     node.querySelector('.source-link').href = res.url;
-    node.querySelector('.rom-card__meta').textContent = `${res.devices.length} ${TRANSLATIONS[currentLang].devices_found}`;
+    
+    if (res.error) {
+      const errorMsg = node.querySelector('.rom-card__error');
+      errorMsg.textContent = `Source offline: ${res.error}`;
+      errorMsg.hidden = false;
+      node.querySelector('.rom-card__meta').textContent = `Offline`;
+    } else {
+      node.querySelector('.rom-card__meta').textContent = `${res.devices.length} ${TRANSLATIONS[currentLang].devices_found}`;
+    }
     
     const list = node.querySelector('.device-list');
     res.devices.forEach((d) => {
