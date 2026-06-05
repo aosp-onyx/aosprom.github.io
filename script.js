@@ -1,12 +1,17 @@
 const ROM_SOURCES = [
   { name: 'LineageOS', url: 'https://raw.githubusercontent.com/LineageOS/hudson/main/updater/devices.json' },
-  { name: 'PixelOS (15)', url: 'https://raw.githubusercontent.com/PixelOS-AOSP/official_devices/fifteen/API/devices.json' }
+  { name: 'PixelOS (15)', url: 'https://raw.githubusercontent.com/PixelOS-AOSP/official_devices/fifteen/API/devices.json' },
+  { name: 'AlphaDroid', url: 'https://api.github.com/repos/AlphaDroid-devices/OTA/contents' },
+  { name: 'Evolution X', url: 'https://api.github.com/repos/Evolution-X/OTA/contents' }
 ];
 
 const BACKUP_DEVICES = [
   { codename: 'onyx', name: 'OnePlus X', brand: 'OnePlus', romName: 'AlphaDroid', version: '15.0' },
   { codename: 'sweet', name: 'Redmi Note 10 Pro', brand: 'Xiaomi', romName: 'AlphaDroid', version: '15.0' },
-  { codename: 'fuxi', name: 'Xiaomi 13', brand: 'Xiaomi', romName: 'Evolution X', version: '15.0' }
+  { codename: 'fuxi', name: 'Xiaomi 13', brand: 'Xiaomi', romName: 'Evolution X', version: '15.0' },
+  { codename: 'marble', name: 'POCO F5', brand: 'Xiaomi', romName: 'AlphaDroid', version: '15.0' },
+  { codename: 'mondrian', name: 'POCO F5 Pro', brand: 'Xiaomi', romName: 'AlphaDroid', version: '15.0' },
+  { codename: 'citrus', name: 'POCO M3', brand: 'Xiaomi', romName: 'LineageOS', version: '14.0' }
 ];
 
 const TRANSLATIONS = {
@@ -33,6 +38,26 @@ const brandFilter = document.getElementById('brandFilter');
 const androidFilter = document.getElementById('androidFilter');
 const tickerContent = document.getElementById('tickerContent');
 const romCardTemplate = document.getElementById('romCardTemplate');
+const themeToggle = document.getElementById('themeToggle');
+const themeIcon = document.getElementById('themeIcon');
+
+// Theme Management
+const applyTheme = (theme) => {
+  document.documentElement.setAttribute('data-theme', theme);
+  const isLight = theme === 'light';
+  themeIcon.innerHTML = isLight 
+    ? '<path fill="currentColor" d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>' // Moon
+    : '<path fill="currentColor" d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/>'; // Sun
+};
+
+let currentTheme = localStorage.getItem('theme') || 'dark';
+applyTheme(currentTheme);
+
+themeToggle.addEventListener('click', () => {
+  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('theme', currentTheme);
+  applyTheme(currentTheme);
+});
 
 const getDeviceCodename = (d) => (d.codename || d.device || d.id || d.model || 'unknown').toLowerCase();
 const getDeviceLabel = (d, code) => d.device_name || d.name || d.model || code;
@@ -47,9 +72,19 @@ const fetchSource = async (source) => {
     const res = await fetch(source.url, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const payload = await res.json();
-    const devices = (Array.isArray(payload) ? payload : (payload.devices || Object.entries(payload).map(([c, v]) => ({ codename: c, ...v })))).map(d => ({
-      ...d, romName: source.name, brand: d.brand || d.oem || 'Unknown'
-    }));
+    let devices = [];
+    
+    if (source.name === 'AlphaDroid' || source.name === 'Evolution X') {
+       // Handle GitHub Repository Contents API (list of files)
+       devices = payload.filter(e => e.name.endsWith('.json')).map(e => ({ 
+         codename: e.name.replace('.json', ''), 
+         romName: source.name 
+       }));
+    } else {
+       devices = (Array.isArray(payload) ? payload : (payload.devices || Object.entries(payload).map(([c, v]) => ({ codename: c, ...v })))).map(d => ({
+         ...d, romName: source.name, brand: d.brand || d.oem || 'Unknown'
+       }));
+    }
     return { ...source, devices, error: null };
   } catch (e) {
     return { ...source, devices: [], error: e.message };

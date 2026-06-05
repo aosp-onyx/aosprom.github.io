@@ -13,6 +13,21 @@
   --glass: rgba(10, 13, 20, 0.8);
 }
 
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f8fafc;
+  --bg-elev: #ffffff;
+  --bg-card: #f1f5f9;
+  --accent: #2563eb;
+  --accent-glow: rgba(37, 99, 235, 0.1);
+  --text: #0f172a;
+  --text-muted: #475569;
+  --border: rgba(0, 0, 0, 0.08);
+  --success: #059669;
+  --error: #dc2626;
+  --glass: rgba(255, 255, 255, 0.8);
+}
+
 * {
   box-sizing: border-box;
   -webkit-font-smoothing: antialiased;
